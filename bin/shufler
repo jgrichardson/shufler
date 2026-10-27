@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+# Shufler: A 3D control room for developers who run many AI coding agent sessions at once.
+# Control script: init | setup | dev | start | stop | status | install | uninstall | test | library
+set -euo pipefail
+
+# The product's names, each defined once here (the daemon's own copy is in daemon/shufler/config.py).
+# NAME is the CLI, the Python package and the config/cache/log name; this file's own name matches it by hand.
+NAME=shufler
+ENV_PREFIX=SHUFLER_
+SERVICE_LABEL="dev.$NAME.daemon"
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DAEMON="$ROOT/daemon"
+WEB="$ROOT/web"
+HOST=127.0.0.1
+# setting KEY DEFAULT: $ENV_PREFIX$KEY, else DEFAULT.
+setting() { local var="$ENV_PREFIX$1"; echo "${!var:-$2}"; }
+
+PORT="$(setting PORT 4700)"
+LABEL="$(setting LAUNCHD_LABEL "$SERVICE_LABEL")"
+PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+LOG="$HOME/Library/Logs/$NAME.log"
+STATE="$HOME/.cache/$NAME"
+APP="$NAME.app:app"
+PIDFILE="$STATE/daemon.pid"
+UV="$(command -v uv || echo "$HOME/.local/bin/uv")"
+DOMAIN="gui/$(id -u)"
+
+sync_env() { (cd "$DAEMON" && "$UV" sync --quiet); }
+
+# Sync the venv and import the daemon's config (which creates its dirs) before this script writes into $STATE.
+prepare() {
+  sync_env
+  (cd "$DAEMON" && "$DAEMON/.venv/bin/python" -c "import $NAME.config")
+  mkdir -p "$STATE" "$(dirname "$LOG")"
+}
+
+pid_alive() { [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+launchd_loaded() { launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; }
+
+# The pid listening on our port, but only when it is this daemon ($APP).
+is_daemon() { ps -ww -o command= -p "$1" | grep -Eq "$NAME\.app:app"; }
+
+port_daemon_pid() {
+  local pid
+  pid="$(lsof -nP -t -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)"
+  [[ -n "$pid" ]] && is_daemon "$pid" && echo "$pid"
+}
+healthy() { curl -fsS --max-time 2 "http://$HOST:$PORT/api/health" >/dev/null 2>&1; }
+
+wait_healthy() {
+  for _ in $(seq 1 40); do healthy && return 0; sleep 0.25; done
+  return 1
+}
+
+cmd_dev() {
+  prepare
+  local pids=()
+  trap 'kill "${pids[@]}" 2>/dev/null || true' EXIT INT TERM
+  (cd "$DAEMON" && exec env "${ENV_PREFIX}DEV=1" "$UV" run uvicorn "$APP" --reload --host "$HOST" --port "$PORT") &
+  pids+=($!)
+  if [[ -f "$WEB/package.json" ]]; then
+    (cd "$WEB" && exec bun run dev) &
+    pids+=($!)
+  else
+    echo "$NAME: no web/package.json, running the daemon only"
+  fi
+  wait
+}
+
+config_target() { setting CONFIG "$HOME/.config/$NAME/config.toml"; }
+
+# Pick the terminal (cmux, iTerm2, tmux, ...) and write it to the config: interactive, or
+# --terminal KIND / --yes for scripts. Creates the config from config.example.toml when missing.
+cmd_setup() {
+  sync_env
+  (cd "$DAEMON" && "$DAEMON/.venv/bin/python" -m "$NAME.setup_cli" setup --config "$(config_target)" "$@")
+}
+
+cmd_start() {
+  if healthy; then echo "$NAME: already running on http://$HOST:$PORT"; return 0; fi
+  prepare  # first: the daemon's config import creates (or copies over) its dirs before we look for the config
+  if [[ ! -e "$(config_target)" ]]; then
+    echo "$NAME: no config yet; choosing a terminal first"
+    if [[ -t 0 ]]; then cmd_setup; else cmd_setup --yes; fi
+  fi
+  if [[ -f "$PLIST" ]]; then
+    launchd_loaded || launchctl bootstrap "$DOMAIN" "$PLIST"
+    launchctl kickstart "$DOMAIN/$LABEL" >/dev/null 2>&1 || true
+  else
+    cd "$DAEMON"
+    nohup "$DAEMON/.venv/bin/uvicorn" "$APP" --host "$HOST" --port "$PORT" >>"$LOG" 2>&1 </dev/null &
+    echo $! >"$PIDFILE"
+  fi
+  if wait_healthy; then echo "$NAME: running on http://$HOST:$PORT (log $LOG)"
+  else echo "$NAME: did not become healthy; see $LOG" >&2; return 1; fi
+}
+
+stop_pid() {
+  local pid="$1"
+  kill "$pid" 2>/dev/null || return 0
+  for _ in $(seq 1 40); do kill -0 "$pid" 2>/dev/null || break; sleep 0.25; done
+  if kill -0 "$pid" 2>/dev/null; then echo "$NAME: pid $pid still shutting down" >&2
+  else echo "$NAME: stopped pid $pid"; fi
+}
+
+cmd_stop() {
+  if launchd_loaded; then
+    launchctl bootout "$DOMAIN/$LABEL" && echo "$NAME: unloaded launchd job ($LABEL); '$NAME start' reloads it"
+    for _ in $(seq 1 40); do healthy || break; sleep 0.25; done
+  fi
+  local pid
+  if [[ -f "$PIDFILE" ]]; then
+    pid="$(cat "$PIDFILE")"
+    kill -0 "$pid" 2>/dev/null && is_daemon "$pid" && stop_pid "$pid"
+    rm -f "$PIDFILE"
+  fi
+  # Still answering (a daemon started by hand, or a pidfile lost): stop whatever of ours holds the port.
+  pid="$(port_daemon_pid || true)"
+  if [[ -n "$pid" ]]; then stop_pid "$pid"; fi
+  return 0
+}
+
+cmd_status() {
+  local how="not running"
+  launchd_loaded && how="launchd ($LABEL)"
+  pid_alive && how="background pid $(cat "$PIDFILE")"
+  if [[ "$how" == "not running" ]]; then
+    local pid
+    pid="$(port_daemon_pid || true)"
+    [[ -n "$pid" ]] && how="pid $pid, $(ps -ww -o command= -p "$pid" | grep -Eo '[a-z]+\.app:app') (not under $NAME's pidfile; '$NAME stop' stops it)"
+  fi
+  echo "process: $how"
+  (cd "$DAEMON" && "$DAEMON/.venv/bin/python" -m "$NAME.setup_cli" status 2>&1) || true
+  if healthy; then
+    echo "health:  ok  http://$HOST:$PORT"
+    curl -fsS --max-time 2 "http://$HOST:$PORT/api/health" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+for name, s in sorted((d.get("sources") or {}).items()):
+    flag = "ok " if s.get("ok") else "OFF"
+    age = "" if s.get("age") is None else "%6.0fs" % s["age"]
+    print("  %-12s %s %7s %s" % (name, flag, age, s.get("error") or ""))
+print("  ws clients: %s" % d.get("clients"))
+'
+  else
+    echo "health:  not answering on http://$HOST:$PORT"
+    return 1
+  fi
+}
+
+cmd_install() {
+  prepare
+  if pid_alive || port_daemon_pid >/dev/null; then
+    echo "$NAME: stopping the background daemon so launchd can own the port"; cmd_stop
+  fi
+  mkdir -p "$(dirname "$PLIST")"
+  cat >"$PLIST" <<PL
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$DAEMON/.venv/bin/uvicorn</string>
+    <string>$APP</string>
+    <string>--host</string><string>$HOST</string>
+    <string>--port</string><string>$PORT</string>
+  </array>
+  <key>WorkingDirectory</key><string>$DAEMON</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>HOME</key><string>$HOME</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>$LOG</string>
+  <key>StandardErrorPath</key><string>$LOG</string>
+</dict>
+</plist>
+PL
+  launchd_loaded && launchctl bootout "$DOMAIN/$LABEL" || true
+  launchctl bootstrap "$DOMAIN" "$PLIST"
+  echo "$NAME: installed $PLIST and loaded it"
+}
+
+cmd_uninstall() {
+  launchd_loaded && launchctl bootout "$DOMAIN/$LABEL" || true
+  rm -f "$PLIST"
+  echo "$NAME: uninstalled $LABEL"
+}
+
+cmd_test() { sync_env; cd "$DAEMON" && "$UV" run pytest -q "$@"; }
+
+cmd_library() { sync_env; cd "$DAEMON" && "$UV" run --quiet python -m "$NAME.library_cli" "$@"; }
+
+cmd_init() {
+  prepare
+  local target; target="$(setting CONFIG "$HOME/.config/$NAME/config.toml")"
+  if [[ -e "$target" && "${1:-}" != "--force" ]]; then
+    echo "config already exists: $target ($NAME init --force overwrites it)"
+    return 0
+  fi
+  mkdir -p "$(dirname "$target")"
+  cp "$DAEMON/config.example.toml" "$target"
+  echo "wrote $target"
+  echo "edit it (uncomment the adapters you use), pick your terminal with '$NAME setup', then: $NAME start"
+}
+
+case "${1:-}" in
+  init) shift; cmd_init "$@" ;;
+  setup) shift; cmd_setup "$@" ;;
+  dev) cmd_dev ;;
+  start) cmd_start ;;
+  stop) cmd_stop ;;
+  status) cmd_status ;;
+  install) cmd_install ;;
+  uninstall) cmd_uninstall ;;
+  test) shift; cmd_test "$@" ;;
+  library) shift; cmd_library "$@" ;;
+  -h|--help|help)
+    echo "Shufler: A 3D control room for developers who run many AI coding agent sessions at once."
+    echo "usage: $NAME init|setup|dev|start|stop|status|install|uninstall|test|library" ;;
+  *) echo "Shufler: A 3D control room for developers who run many AI coding agent sessions at once." >&2
+     echo "usage: $NAME init|setup|dev|start|stop|status|install|uninstall|test|library" >&2; exit 2 ;;
+esac

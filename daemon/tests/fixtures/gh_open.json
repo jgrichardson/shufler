@@ -1,0 +1,15 @@
+[
+ {"number": 253, "title": "feat: support handoff", "branch": "ft_x", "draft": false, "updated_at": "2026-10-21T10:00:00Z", "created_at": "2026-10-20T10:00:00Z",
+  "url": "https://github.com/acme/widgets/pull/253", "review_decision": "APPROVED", "labels": [],
+  "checks": [{"name": "test", "status": "COMPLETED", "conclusion": "SUCCESS", "url": "https://github.com/acme/widgets/actions/runs/1/job/2"}],
+  "reviews": [{"login": "reviewbot", "state": "APPROVED", "at": "2026-10-21T09:00:00Z"}]},
+ {"number": 260, "title": "feat: billing booking", "branch": "ft_billing_branch", "draft": true, "updated_at": "2026-10-21T10:00:00Z", "created_at": "2026-10-20T10:00:00Z",
+  "url": "https://github.com/acme/widgets/pull/260", "review_decision": "REVIEW_REQUIRED", "labels": [],
+  "checks": [{"name": "test", "status": "COMPLETED", "conclusion": "FAILURE", "url": "https://github.com/acme/widgets/actions/runs/777/job/2"},
+             {"name": "lint", "status": "COMPLETED", "conclusion": "SUCCESS", "url": "https://github.com/acme/widgets/actions/runs/778/job/3"}],
+  "reviews": []},
+ {"number": 300, "title": "fix: preview thing", "branch": "ft_preview", "draft": false, "updated_at": "2026-10-21T10:00:00Z", "created_at": "2026-10-20T10:00:00Z",
+  "url": "https://github.com/acme/widgets/pull/300", "review_decision": null, "labels": ["preview"],
+  "checks": [{"name": "test", "status": "IN_PROGRESS", "conclusion": null, "url": null}],
+  "reviews": [{"login": "someone", "state": "APPROVED", "at": "2026-10-21T09:00:00Z"}]}
+]

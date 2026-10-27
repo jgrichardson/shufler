@@ -1,0 +1,25 @@
+# local config and runtime state
+config.toml
+!daemon/tests/fixtures/config.toml
+actions.jsonl
+*.log
+.cache/
+
+# python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# web
+node_modules/
+dist/
+
+.DS_Store
+.env
+.env.*
+.idea/
+.vscode/
+.ruff_cache/
+
+# private skins (see docs/SKINS.md)
+web/src/skins/local/

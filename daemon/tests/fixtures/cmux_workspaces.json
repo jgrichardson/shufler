@@ -1,0 +1,11 @@
+{"window_ref": "window:1", "workspaces": [
+  {"id": "WS-A", "ref": "workspace:2", "index": 0, "title": "BILLING · aaaa1111", "custom_title": "BILLING · aaaa1111", "custom_color": "#9b59b6",
+   "description": null, "current_directory": "/Users/demo/worktrees/widgets/ft_billing_branch", "listening_ports": [3005, 3041],
+   "latest_submitted_at": "2026-10-21T13:47:00Z", "latest_conversation_message": "SECRET PROMPT TEXT", "latest_submitted_message": "SECRET PROMPT TEXT", "pinned": false, "selected": false},
+  {"id": "WS-B", "ref": "workspace:3", "index": 1, "title": "AUTH", "custom_title": "AUTH", "custom_color": null,
+   "description": "● me · Owner: review and merge #253", "current_directory": "/Users/demo/widgets", "listening_ports": [],
+   "latest_submitted_at": null, "latest_conversation_message": "SECRET", "pinned": false, "selected": true},
+  {"id": "WS-C", "ref": "workspace:4", "index": 2, "title": "LOOSE", "custom_title": "LOOSE", "custom_color": null,
+   "description": "● waiting · Sam testing #300 on preview", "current_directory": "/Users/demo/widgets", "listening_ports": [],
+   "latest_submitted_at": null, "pinned": false, "selected": false}
+]}

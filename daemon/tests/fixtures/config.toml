@@ -1,0 +1,172 @@
+# Test configuration: every optional adapter on, fake command paths.
+[app]
+port = 4700
+owner_aliases = ["owner", "me"]
+
+[terminal]
+kind = "cmux"
+command_titles = ["CONTROL", "LEDGERS", "CODEX", "SHARED"]
+utility = ["SHARED", "CODEX"]
+
+[cmux]
+bin = "/opt/shufler-test/bin/cmux"
+
+[agent]
+adapter = "claude-code"
+[[agent.accounts]]
+name = "personal"
+label = "personal"
+projects_dir = "/nonexistent/personal"
+[[agent.accounts]]
+name = "work"
+label = "work"
+projects_dir = "/nonexistent/work"
+
+[scm]
+adapter = "github"
+gh = "gh"
+repo = "acme/widgets"
+deploy_workflow = "deploy_production.yml"
+deploy_branch = "main"
+preview_url = "https://pr-{pr}.preview.example.test"
+
+[reviewer]
+enabled = true
+login_regex = "reviewbot|review-bot"
+status_command = ["/opt/shufler-test/bin/review-watch", "status", "--json"]
+retrigger_command = ["/opt/shufler-test/bin/review-watch", "retrigger", "{pr}"]
+
+[intake]
+enabled = true
+dir = "/nonexistent/intake"
+set_command = "/opt/shufler-test/bin/intake"
+workspace = "CONTROL"
+prompt = "/intake {text}"
+
+[ledgers]
+enabled = true
+dir = "/nonexistent/ledgers"
+area_env = "LEDGER_AREA"
+session_marker = "area"
+
+[board]
+enabled = true
+command = "/opt/shufler-test/bin/board"
+stages = ["backlog", "in_progress", "in_review", "done", "parked"]
+
+# ---------------------------------------------------------------- work phases (districts, left to right)
+[pipeline]
+stages = [
+  { id = "brainstorm", label = "Brainstorm", color = "#9aa4b2", description = "Exploring the idea." },
+  { id = "plan",       label = "Plan",       color = "#7c8cf8", description = "Planning the work." },
+  { id = "build",      label = "Build",      color = "#f2b544", description = "Building on a branch or draft PR." },
+  { id = "qa",         label = "QA",         color = "#45c7e0", description = "Testers have it on preview." },
+  { id = "review",     label = "Review",     color = "#f28c38", description = "In review: PR review, review bot, CI." },
+  { id = "merge",      label = "Merge",      color = "#a56cf0", description = "Ready to merge." },
+  { id = "deploy",     label = "Deploy",     color = "#3dd68c", description = "Merged, waiting on the production deploy." },
+]
+
+[notes]
+enabled = true
+dir = "/nonexistent/notes"
+
+[[commands]]
+id = "session_note"
+label = "Session note"
+scope = "station"
+argv = ["/opt/shufler-test/bin/session-label", "{state}", "{text}"]
+env = { AGENT_SESSION_ID = "{session_id}", WORKSPACE_ID = "{station_id}" }
+inputs = [
+  { name = "state", type = "choice", choices = ["working", "me", "waiting", "staging", "merged", "done"] },
+  { name = "text", label = "Note", max = 80 },
+]
+
+[[commands]]
+id = "query"
+label = "Query"
+description = "Read-only query against the reporting database"
+argv = ["/opt/shufler-test/bin/query", "{raw}", "{text}"]
+prod = true
+timeout = 15
+inputs = [
+  { name = "text", label = "SQL", multiline = true, max = 10000 },
+  { name = "raw", type = "flag", arg = "--raw", label = "Raw output" },
+]
+
+[[commands]]
+id = "log_note"
+label = "Log note"
+argv = ["/opt/shufler-test/bin/log", "note", "{text}"]
+confirm = "typed"
+inputs = [{ name = "text", max = 300 }]
+
+[prompts]
+postmerge = "{pr} is merged and deploying. Draft a short note for the requester and tell me where to post it."
+canned = ["Run the focused tests for this PR and fix any failures, then push"]
+
+[terminals]
+enabled = true
+max = 6
+idle_close_s = 7200
+[terminals.presets.prod_console]
+cwd = "~"
+command = "./bin/console production"
+[terminals.presets.preview_console]
+cwd = "~"
+command = "./bin/console preview  # pick the preview for #{pr}"
+[terminals.presets.local_console]
+command = "./bin/console"
+
+[world]
+fallback_domain = "unassigned"
+command_domain = "command"
+fix_pattern = "data|backfill|migrat|repair"
+
+[[domain]]
+id = "auth"
+label = "Auth"
+code = "AU"
+color = "#E3C04B"
+aliases = ["auth", "login", "sso", "session", "oauth"]
+
+[[domain]]
+id = "billing"
+label = "Billing"
+code = "BI"
+color = "#2BB3A0"
+aliases = ["billing", "invoice", "payments", "stripe", "subscription"]
+
+[[domain]]
+id = "search"
+label = "Search"
+code = "SE"
+color = "#8C94F0"
+aliases = ["search", "index", "ranking", "query"]
+
+[[domain]]
+id = "mobile"
+label = "Mobile"
+code = "MO"
+color = "#D0509A"
+aliases = ["mobile", "ios", "android", "app"]
+
+[[domain]]
+id = "infra"
+label = "Infra"
+code = "IN"
+color = "#9CCB4A"
+aliases = ["infra", "ci", "deploy", "terraform", "k8s", "observability"]
+
+[[domain]]
+id = "docs"
+label = "Docs"
+code = "DO"
+color = "#F08C5A"
+aliases = ["docs", "readme", "guide"]
+
+[[domain]]
+id = "unassigned"
+label = "Unassigned"
+code = "??"
+color = "#8A8F98"
+aliases = ["unassigned"]

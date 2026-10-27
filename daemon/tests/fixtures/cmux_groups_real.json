@@ -1,0 +1,56 @@
+{
+  "groups" : [
+    {
+      "anchor_workspace_ref" : "workspace:2",
+      "custom_color" : null,
+      "icon_symbol" : null,
+      "is_collapsed" : false,
+      "is_pinned" : true,
+      "member_count" : 6,
+      "member_workspace_refs" : [
+        "workspace:2",
+        "workspace:17",
+        "workspace:4",
+        "workspace:7",
+        "workspace:6",
+        "workspace:5"
+      ],
+      "name" : "IN_PROGRESS",
+      "ref" : "workspace_group:1"
+    },
+    {
+      "anchor_workspace_ref" : "workspace:13",
+      "custom_color" : null,
+      "icon_symbol" : null,
+      "is_collapsed" : false,
+      "is_pinned" : true,
+      "member_count" : 6,
+      "member_workspace_refs" : [
+        "workspace:13",
+        "workspace:8",
+        "workspace:22",
+        "workspace:23",
+        "workspace:9",
+        "workspace:19"
+      ],
+      "name" : "ON_HOLD",
+      "ref" : "workspace_group:3"
+    },
+    {
+      "anchor_workspace_ref" : "workspace:14",
+      "custom_color" : null,
+      "icon_symbol" : null,
+      "is_collapsed" : true,
+      "is_pinned" : true,
+      "member_count" : 3,
+      "member_workspace_refs" : [
+        "workspace:14",
+        "workspace:15",
+        "workspace:16"
+      ],
+      "name" : "GENERAL",
+      "ref" : "workspace_group:4"
+    }
+  ],
+  "window_ref" : "window:1"
+}

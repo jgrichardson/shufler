@@ -1,0 +1,4 @@
+[
+ {"number": 171, "title": "fix: shipped one", "branch": "ft_s1", "merged_at": "2026-10-20T12:00:00Z", "merge_sha": "abc", "url": "u", "labels": []},
+ {"number": 172, "title": "fix: shipped two", "branch": "ft_s2", "merged_at": "2026-10-21T12:00:00Z", "merge_sha": "def", "url": "u", "labels": []}
+]

@@ -1,0 +1,58 @@
+{
+  "id": "ember",
+  "name": "Ember",
+  "description": "Starship with amber light strips over a red planet; a warm dawn haze in light mode.",
+  "author": "Shufler",
+  "version": "1.0.0",
+  "extends": "starship",
+  "scene": {
+    "background": "#120806",
+    "fog": { "color": "#140906", "near": 700, "far": 1800 },
+    "dim": { "tint": "#4a3a34" }
+  },
+  "sceneLight": {
+    "background": "#fbeee4",
+    "fog": { "color": "#f6e2d4", "near": 650, "far": 1700 },
+    "dim": { "tint": "#e3d4ca" },
+    "ring": "#b8501f"
+  },
+  "chrome": {
+    "--bg": "#0d0605",
+    "--glass-border": "rgba(255, 190, 150, 0.14)",
+    "--accent": "#ffb36b",
+    "--accent-ink": "#2a1206",
+    "--accent-hi": "#ffd2a3",
+    "--accent-lo": "#f0954a",
+    "--accent-border": "#ffd9b8",
+    "--accent-light": "#ffcf9e",
+    "--orb": "radial-gradient(circle at 35% 35%, #ffffff, #ffb36b 50%, #a8461f)"
+  },
+  "chromeLight": {
+    "--accent": "#b8501f",
+    "--accent-hi": "#d56a32",
+    "--accent-lo": "#a4461a",
+    "--accent-border": "#a4461a",
+    "--accent-light": "#9a4016"
+  },
+  "palette": {
+    "light": "#ffbe7a",
+    "nebula": "#3d1a14",
+    "spaceHorizon": "#1a0b08",
+    "planetShine": "#ff7a4d",
+    "planetOcean": "#2a0a06",
+    "planetLand": "#3a1a10",
+    "planetAtmosphere": "#ff6a3d",
+    "cityLights": "#ffe2a8"
+  },
+  "paletteLight": {
+    "light": "#e0782f",
+    "spaceZenith": "#e9a77f",
+    "spaceUpper": "#f4c9a8",
+    "spaceHorizon": "#fbeee4",
+    "spaceBelow": "#f3dccb",
+    "planetShine": "#ffd1b0",
+    "planetOcean": "#c4643a",
+    "planetLand": "#a8875f",
+    "planetAtmosphere": "#fff0e2"
+  }
+}

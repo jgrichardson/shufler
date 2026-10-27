@@ -1,0 +1,18 @@
+ 3884 ??             33:03 /usr/local/bin/zsh -c source /Users/demo/.claude/shell-snapshots/snapshot-zsh-1.sh 2>/dev/null || true
+14904 ??          01:49:33 /opt/homebrew/bin/Python /Users/demo/bin/intake wait some-slug
+19599 ??       13-21:57:55 /Users/demo/.local/bin/claude --chrome-native-host
+19601 ??       13-21:57:55 /Users/demo/.local/bin/claude --chrome-native-host
+229 ??          01:42:50 /Applications/Claude.app/Contents/MacOS/Claude
+41602 ??          01:25:24 /opt/homebrew/bin/Python /Users/demo/shufler/daemon/.venv/bin/uvicorn shufler.app:app --host 127.0.0.1 --port 4700
+51460 ttys005     08:29:00 claude --dangerously-skip-permissions --resume e0d2cdd3-ad36-40c3-b688-b1741d3d5d3d --name CONTROL
+34319 ttys007  02-04:03:59 /Users/demo/.local/bin/claude --settings {"preferredNotifChannel":"notifications_disabled","hooks":{"SessionStart":[{"matcher":"","hooks":[{"type":"command","command":"cmux hooks claude session-start"}]}]}}
+51630 ttys008     08:28:57 claude --dangerously-skip-permissions --resume b20a7997-2baa-4869-a242-929e79e4b224 --name AUTH
+56300 ttys011     08:28:18 claude --dangerously-skip-permissions --resume 7d84dae6-3252-4cfa-8d9d-edc87e9c1780 --name search-area
+64151 ttys014     08:27:10 claude --dangerously-skip-permissions --resume 539230d4-a803-4d81-bdef-9de6d2f0ca2a --name billing-area
+28835 ttys016  02-04:04:25 /Users/demo/.local/bin/claude --settings {"preferredNotifChannel":"notifications_disabled"}
+51021 ttys017     09:30:27 claude --dangerously-skip-permissions --resume 5e4e055f-8784-4095-9b52-01eea5784f6b
+49690 ttys020  13-03:02:02 /Users/demo/.local/bin/claude --session-id db52364d-69c5-404b-bcea-1cea922a934e --settings {"preferredNotifChannel":"notifications_disabled"}
+49711 ttys021     08:29:13 claude --resume 2dcf0883-dce2-4812-a91b-55d0c6afe4f4 --name INFRA
+35005 ttys025        03:36 claude --allow-dangerously-skip-permissions --model claude-fable-5-1 --effort high --permission-mode bypassPermissions
+60001 ??             00:12 claude -p Summarise this --output-format json
+60002 ??             00:05 /Users/demo/.local/bin/claude --print --model sonnet hello

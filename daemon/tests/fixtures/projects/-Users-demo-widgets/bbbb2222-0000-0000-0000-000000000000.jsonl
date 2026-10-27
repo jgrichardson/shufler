@@ -1,0 +1,8 @@
+{"type":"user","timestamp":"2026-10-21T10:00:00.000Z","cwd":"/Users/demo/widgets","sessionId":"bbbb2222","message":{"role":"user","content":"PRIVATE USER PROMPT"}}
+{"type":"assistant","timestamp":"2026-10-21T10:00:05.000Z","cwd":"/Users/demo/widgets","message":{"id":"msg_1","role":"assistant","content":[{"type":"thinking","thinking":"PRIVATE THOUGHT"}],"usage":{"input_tokens":100,"output_tokens":50,"cache_read_input_tokens":9999}}}
+{"type":"assistant","timestamp":"2026-10-21T10:00:06.000Z","cwd":"/Users/demo/widgets","message":{"id":"msg_1","role":"assistant","content":[{"type":"tool_use","id":"toolu_A","name":"Agent","input":{"prompt":"PRIVATE"}}],"usage":{"input_tokens":100,"output_tokens":50}}}
+{"type":"assistant","timestamp":"2026-10-21T10:00:07.000Z","cwd":"/Users/demo/widgets","message":{"id":"msg_2","role":"assistant","content":[{"type":"tool_use","id":"toolu_B","name":"Agent","input":{}}],"usage":{"input_tokens":10,"output_tokens":5}}}
+{"type":"pr-link","sessionId":"bbbb2222","prNumber":253,"prUrl":"https://github.com/acme/widgets/pull/253","timestamp":"2026-10-21T10:00:08.000Z"}
+{"type":"user","timestamp":"2026-10-21T10:00:09.000Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_A","content":"PRIVATE RESULT"}]}}
+{"type":"assistant","timestamp":"2026-10-21T10:00:10.000Z","message":{"id":"msg_3","role":"assistant","content":[{"type":"text","text":"All tests pass. Pushed #253 for review."},{"type":"tool_use","id":"toolu_C","name":"Bash","input":{"command":"ls"}}],"usage":{"input_tokens":1,"output_tokens":2}}}
+{"type":"summary","summary":"PRIVATE SUMMARY"}

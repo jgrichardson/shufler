@@ -1,0 +1,367 @@
+# Shufler configuration.
+# `bin/shufler init` copies this file to ~/.config/shufler/config.toml
+# (override the location with SHUFLER_CONFIG). Commented lines are worked
+# examples: uncomment and edit the ones that apply to you. Anything left out
+# falls back to the defaults shown, and optional adapters stay off until you
+# enable them.
+
+[app]
+name = "Shufler"
+port = 4700
+owner_aliases = ["me"]                              # names in ledger "Ball" cells and notes that mean you
+# owner_aliases = ["sam", "me"]
+# actions_log = "~/shufler/actions.jsonl"   # default: <repo>/actions.jsonl
+# cache_dir = "~/.cache/shufler"
+
+# ---------------------------------------------------------------- terminal
+# Which terminal hosts your agent sessions: "cmux", "iterm2", "tmux", or "auto" (the first one running, else the
+# first one installed). `shufler setup` writes this for you. docs/TERMINALS.md explains each mapping.
+[terminal]
+kind = "auto"
+# Workspace titles treated as the control room (they get the "command" domain).
+command_titles = []
+# command_titles = ["CONTROL", "SHARED"]
+# Utility rows (tools, not work): no row in the world, still reachable from the terminal drawer.
+utility = []
+# utility = ["SHARED"]
+# Read running `claude` processes every 10 s (ps + lsof) to tell open sessions from closed ones.
+processes = true
+
+[cmux]
+# One row per cmux workspace, groups = cmux workspace groups, order = the sidebar.
+bin = "/Applications/cmux.app/Contents/Resources/bin/cmux"
+
+[iterm2]
+# One row per iTerm2 session (pane), order = window (creation order), tab, pane. Uses AppleScript (osascript);
+# macOS asks once to let the app running Shufler control iTerm2 (Privacy & Security > Automation).
+# group_by = "window"      one group per iTerm2 window, named from its title
+# group_by = "tab_prefix"  group by the tab title's prefix: "AUTH · login" goes in group AUTH
+group_by = "window"
+prefix_separator = " · "
+# osascript = "/usr/bin/osascript"
+
+[tmux]
+# Groups = tmux sessions; rows = panes (rows = "pane") or windows (rows = "window"); order = session, window, pane.
+rows = "pane"
+# bin = "/opt/homebrew/bin/tmux"
+# socket_name = "work"            # tmux -L work
+# socket_path = "/tmp/tmux.sock"  # tmux -S /tmp/tmux.sock
+
+# ---------------------------------------------------------------- coding agent
+[agent]
+adapter = "claude-code"                             # only claude-code exists today
+
+# One entry per Claude Code config directory you run sessions from.
+[[agent.accounts]]
+name = "personal"
+label = "personal"
+projects_dir = "~/.claude/projects"
+claude_json = "~/.claude.json"
+settings = "~/.claude/settings.json"
+usage_cache = "~/.claude/usage-cache/personal.json"   # written by a statusline script, optional
+
+# [[agent.accounts]]
+# name = "work"
+# label = "work"
+# projects_dir = "~/.claude-work/projects"
+# claude_json = "~/.claude-work/.claude.json"
+# settings = "~/.claude-work/settings.json"
+# usage_cache = "~/.claude/usage-cache/work.json"
+
+# ---------------------------------------------------------------- source control
+[scm]
+adapter = "github"
+gh = "gh"
+repo = ""                                           # "owner/name"; empty = PR sources off
+# repo = "your-org/your-app"
+deploy_workflow = ""                                # production deploy workflow file; empty = no deploy tracking
+# deploy_workflow = "deploy_production.yml"
+deploy_branch = "main"
+# deploy_branch = "develop"
+preview_url = ""                                    # "{pr}" is replaced with the PR number
+# preview_url = "https://pr-{pr}.preview.example.com"
+worktree_roots = ["~/worktrees"]                    # <root>/*/<branch> counts as a live worktree (stale ledger rows)
+
+# ---------------------------------------------------------------- external reviewer bot (optional)
+# A bot that reviews PRs under its own GitHub login. When enabled, its latest review is the reviewer gate:
+# a PR is ready to merge only once the bot approved the current head commit. When off, CI decides.
+[reviewer]
+enabled = false
+login_regex = ""                                    # matches the bot's GitHub login, e.g. "my-review-bot"
+# Optional watcher that prints {"prs": {"<n>": {"status": "...", "cycle": 2}}} as JSON (review rounds).
+# status_command = ["~/bin/review-watch", "status", "--json"]
+# How to ask for a re-review: a PR comment ({pr} is filled in) ...
+# retrigger_comment = "@my-review-bot review"
+# ... or a command of your own.
+# retrigger_command = ["~/bin/review-watch", "retrigger", "{pr}"]
+
+# ---------------------------------------------------------------- work item sources (optional)
+# Intake: one JSON record per work item (<dir>/<slug>.json + <slug>.events.jsonl), and a workspace that
+# takes new items from the "New work item" form (the prompt is typed there; {text} is what you entered).
+[intake]
+enabled = false
+dir = ""
+set_command = ""                                    # CLI taking `set <slug> key=value`
+workspace = ""                                      # workspace title, e.g. "CONTROL"
+prompt = "{text}"                                   # e.g. "/intake {text}" to run a skill of your own
+# reply_events = ["user_replied", "ready_for_owner"]   # record events that put the item in "Your move"
+
+# Area ledgers: <dir>/<area>/ledger.md with an "## Open" markdown table
+# (Branch | PR | Topic | State | Ball | Next | Worktree | Session), one per long-lived work area.
+[ledgers]
+enabled = false
+dir = ""
+area_env = "LEDGER_AREA"                            # env var naming a session's area (LEDGER_AREA=billing claude)
+session_marker = "area"                             # a Session cell with this word belongs to that area's session
+
+# Board: an external board CLI with one card per intake record (the record's `card` = {id, stage}).
+[board]
+enabled = false
+command = ""
+stages = ["backlog", "in_progress", "in_review", "done"]
+get_args = ["get", "{id}"]                          # prints the card; its stage is read with stage_pattern
+stage_args = ["stage", "{id}", "{stage}"]
+note_args = ["note", "{id}", "{text}"]
+stage_pattern = 'stage=(\S+)'
+record_key = "card"
+
+# ---------------------------------------------------------------- work phases (districts, left to right)
+[pipeline]
+stages = [
+  { id = "brainstorm", label = "Brainstorm", color = "#9aa4b2", description = "Exploring the idea." },
+  { id = "plan",       label = "Plan",       color = "#7c8cf8", description = "Planning the work." },
+  { id = "build",      label = "Build",      color = "#f2b544", description = "Building on a branch or draft PR." },
+  { id = "qa",         label = "QA",         color = "#45c7e0", description = "Testers have it on preview." },
+  { id = "review",     label = "Review",     color = "#f28c38", description = "In review: PR review, review bot, CI." },
+  { id = "merge",      label = "Merge",      color = "#a56cf0", description = "Ready to merge." },
+  { id = "deploy",     label = "Deploy",     color = "#3dd68c", description = "Merged, waiting on the production deploy." },
+]
+
+# ---------------------------------------------------------------- session notes (optional)
+# One JSON file per agent session ({session, state, text, ts, cwd, ws_ref}) written by a tool of your own;
+# the note shows on the session's row. States: working, me, waiting, staging, merged, done.
+[notes]
+enabled = false
+dir = ""
+# dir = "~/.claude/session-notes"
+
+# ---------------------------------------------------------------- custom commands (optional)
+# Named commands shown as levers (World panel, Session panel, palette, and the command drawer). Each run goes
+# through the confirm panel, which shows the exact command. Tokens in argv and env: the input names, and for
+# scope = "station" also {station_id} {station} {session_id} {cwd}. A whole-argument token that is empty (an
+# unset flag or an empty optional input) drops that argument. confirm = "none" | "tap" | "typed";
+# prod = true marks the confirm panel red. Input types: "text" (max, multiline, placeholder, optional),
+# "choice" (choices), "flag" (arg, the argument passed when checked).
+#
+# [[commands]]
+# id = "test"
+# label = "Run tests"
+# description = "Run the test suite in a repo"
+# argv = ["make", "-C", "{dir}", "test"]
+# inputs = [{ name = "dir", label = "Repo", placeholder = "~/code/myapp" }]
+#
+# [[commands]]
+# id = "session_note"
+# label = "Session note"
+# scope = "station"
+# argv = ["~/bin/session-note", "{state}", "{text}"]
+# env = { AGENT_SESSION_ID = "{session_id}" }
+# inputs = [
+#   { name = "state", type = "choice", choices = ["working", "me", "waiting", "staging", "merged", "done"] },
+#   { name = "text", label = "Note", max = 80 },
+# ]
+#
+# [[commands]]
+# id = "query"
+# label = "Query"
+# description = "Read-only query against the reporting replica"
+# argv = ["~/bin/query", "{raw}", "{text}"]
+# prod = true
+# timeout = 15
+# inputs = [
+#   { name = "text", label = "SQL", multiline = true, max = 10000 },
+#   { name = "raw", type = "flag", arg = "--raw", label = "Raw output" },
+# ]
+
+# ---------------------------------------------------------------- dispatch prompts
+[prompts]
+postmerge = "{pr} is merged and deploying. Draft a short note for the requester and tell me where to post it."
+
+# Dispatch buttons, grouped. Tokens {pr} {person} {topic} {url} are filled by the web before sending.
+# Plain strings (canned = ["..."]) also load, as group "Custom".
+[[prompts.canned]]
+group = "PR flow"
+label = "Status"
+text = "What is the status of {pr}? Tell me what is left before it can merge."
+
+[[prompts.canned]]
+group = "PR flow"
+label = "Drive to ready"
+text = "Get {pr} ready to merge. Resolve conflicts, address review comments, push, and watch CI until it is green and approved. Tell me when I can merge."
+
+[[prompts.canned]]
+group = "PR flow"
+label = "Fix conflicts"
+text = "Fix the conflicts in {pr} and tell me when I can merge."
+
+[[prompts.canned]]
+group = "PR flow"
+label = "Review fixes"
+text = "Review comments came in on {pr}. Address them, push, and tell me when it is ready for another look."
+
+[[prompts.canned]]
+group = "PR flow"
+label = "Watch the review"
+text = "I asked for a review of {pr}. Watch it and fix any requested changes until it is approved and CI is green."
+
+[[prompts.canned]]
+group = "Post-merge"
+label = "Close the loop"
+text = "{pr} is merged and deploying. Draft a short note for the requester and tell me where to post it."
+
+[[prompts.canned]]
+group = "Post-merge"
+label = "Verify in production"
+text = "{pr} is in production. Check that the fix works and tell me what you saw."
+
+[[prompts.canned]]
+group = "Session"
+label = "Plain speak"
+text = "Explain in plain words where we are and what you need from me to unblock."
+
+[[prompts.canned]]
+group = "Session"
+label = "Keep going"
+text = "Keep going until it is ready. Watch every PR in this session and stay on top of reviews, CI and conflicts."
+
+[[prompts.canned]]
+group = "Session"
+label = "Summary"
+text = "Summarise what this session has done today in five bullets."
+
+[[prompts.canned]]
+group = "QA"
+label = "Browser QA"
+text = "Do a browser QA pass on {pr} on its preview. Save screenshots and tell me what failed."
+
+[[prompts.canned]]
+group = "QA"
+label = "Test plan"
+text = "Write a short test plan for {pr}: what to click, what should happen."
+
+[[prompts.canned]]
+group = "Messages"
+label = "Draft to person"
+text = "Give me a short message I can send to {person} about {topic}. No opening line, no sign-off."
+
+[[prompts.canned]]
+group = "Messages"
+label = "Read thread"
+text = "Read the latest message in this thread and tell me what to do: {url}"
+
+# ---------------------------------------------------------------- time travel
+[history]
+enabled = true
+path = "~/.local/share/shufler/history.sqlite"
+retention_days = 90
+backfill_days = 30                                   # one-time best-effort import on first start; 0 = off
+
+# ---------------------------------------------------------------- web terminals
+[terminals]
+enabled = true
+max = 6
+idle_close_s = 7200
+# Presets only type text into the shell; you press Enter yourself. A preset with no command is hidden.
+# prod_console gets the red PROD tab; any preset can set `prod = true`.
+[terminals.presets.prod_console]
+cwd = ""
+command = ""
+# cwd = "~/code/myapp"
+# command = "./bin/console production"
+
+[terminals.presets.preview_console]
+cwd = ""
+command = ""                                        # "{pr}" is replaced with the PR number
+# command = "./bin/console preview  # pick the preview for #{pr}"
+
+[terminals.presets.local_console]
+command = ""                                        # runs in the session's working directory
+# command = "./bin/console"
+
+# ---------------------------------------------------------------- skills
+# Discovered from each account's skills/, commands/ and plugin cache, plus each
+# station's repo (.claude/skills, .claude/commands, docs/claude/skills).
+# `expose` lists skills shown up front in the palette; `hide` removes skills
+# entirely. Per-skill tables set the default station (`target`, a workspace
+# title), the args template ({pr} {branch} {station} {link} {link_or_text}
+# {text}), the confirm level, whether it is pinned as a button, and where that
+# button goes (`placement`: "station", "pr", "global", "question" or "none").
+# The web's Settings drawer rewrites this section (comments in it are not kept).
+[skills]
+expose = []
+hide = []
+# expose = ["code-review", "describe-pr"]
+
+# [skills.code-review]
+# args_template = "{pr}"
+# placement = "pr"
+# pin = true
+
+# ---------------------------------------------------------------- world layout domains
+# One lane per domain, in this order. Aliases match lower-case tokens of workspace titles, PR title scopes
+# (`feat(billing): ...`), branches and ledger areas. The palette below is a sample; replace it with your own
+# areas. `fallback_domain` (always the last lane) is used when nothing matches.
+# `manual = [...]` in a [[domain]] table holds aliases written by the set_domain action.
+[world]
+fallback_domain = "unassigned"
+command_domain = "command"
+fix_pattern = "data|backfill|migrat|repair"         # branches and ledger topics drawn as data fixes
+
+[[domain]]
+id = "auth"
+label = "Auth"
+code = "AU"
+color = "#E3C04B"
+aliases = ["auth", "login", "sso", "session", "oauth"]
+
+[[domain]]
+id = "billing"
+label = "Billing"
+code = "BI"
+color = "#2BB3A0"
+aliases = ["billing", "invoice", "payments", "stripe", "subscription"]
+
+[[domain]]
+id = "search"
+label = "Search"
+code = "SE"
+color = "#8C94F0"
+aliases = ["search", "index", "ranking", "query"]
+
+[[domain]]
+id = "mobile"
+label = "Mobile"
+code = "MO"
+color = "#D0509A"
+aliases = ["mobile", "ios", "android", "app"]
+
+[[domain]]
+id = "infra"
+label = "Infra"
+code = "IN"
+color = "#9CCB4A"
+aliases = ["infra", "ci", "deploy", "terraform", "k8s", "observability"]
+
+[[domain]]
+id = "docs"
+label = "Docs"
+code = "DO"
+color = "#F08C5A"
+aliases = ["docs", "readme", "guide"]
+
+[[domain]]
+id = "unassigned"
+label = "Unassigned"
+code = "??"
+color = "#8A8F98"
+aliases = ["unassigned"]
