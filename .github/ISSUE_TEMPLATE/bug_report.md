@@ -11,7 +11,13 @@ labels: bug
 **How to reproduce**
 
 **Setup**
-- OS:
+- Shufler version or commit (`bin/shufler version`):
+- macOS version:
 - Terminal (cmux, iTerm2, tmux):
-- Shufler commit:
+- Agent harness (Claude Code, Codex CLI, both):
+- Browser:
+- `bin/shufler status` output, if the daemon is involved:
 - Relevant `config.toml` sections (remove anything private):
+
+Please leave out tokens, private repo names, transcripts and anything else you would not post publicly.
+Security problems go through [SECURITY.md](https://github.com/jgrichardson/shufler/blob/main/SECURITY.md), not a public issue.

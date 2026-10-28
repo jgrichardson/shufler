@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea or a new adapter
+about: Suggest an idea, a new terminal or agent adapter, or a skin
 labels: enhancement
 ---
 
@@ -9,3 +9,5 @@ labels: enhancement
 **What would help**
 
 **Anything you've tried**
+
+**Your setup** (terminal, agent harness, OS), if it matters for this idea:
