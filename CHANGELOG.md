@@ -10,7 +10,8 @@ All notable changes to Shufler are recorded here. The format follows
 
 - A hosted demo on GitHub Pages (https://jgrichardson.github.io/shufler/): the web app on built-in sample data, with
   no daemon and every action simulated. `VITE_DEMO=1` and `SHUFLER_BASE` build it; `.github/workflows/pages.yml`
-  publishes it on every push to `main`. Its status bar links back to the repository.
+  publishes it on every push to `main`. Its status bar links back to the repository. The hosted demo shows a
+  lighter floor of six rows and one or two PRs each; local `?mock=1` keeps the full sample world.
 
 ## [0.2.0] - 2026-10-28
 
