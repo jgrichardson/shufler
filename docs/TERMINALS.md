@@ -60,9 +60,9 @@ The snapshot reports the active terminal in `capabilities.terminal`, and its hea
 | Focused row (Follow) | the selected workspace | the current session of the current window | the active pane of the active window in the most recently attached session |
 | Process match | `CMUX_WORKSPACE_ID` in the process env | `ITERM_SESSION_ID` in the env, else the tty | `TMUX_PANE` in the env, else the tty |
 
-Running `claude` processes are matched to rows by, in order: the terminal's id in the process environment,
-the process's tty (when exactly one row owns it), the joined Claude session id, then a cwd that belongs to
-one row only. When the terminal reports ttys (iTerm2 and tmux do), a process on a tty that none of its rows
+Running agent processes (`claude`, `codex`; see [`AGENTS.md`](AGENTS.md)) are matched to rows by, in order:
+the terminal's id in the process environment, the process's tty (when exactly one row owns it), the joined
+session id, then a cwd that belongs to one row only. When the terminal reports ttys (iTerm2 and tmux do), a process on a tty that none of its rows
 owns runs in some other terminal and is ignored, so a daemon pointed at tmux does not claim sessions that
 run in cmux.
 
@@ -174,7 +174,7 @@ A **workspace record**, one per row, in display order:
 | `listening_ports` | list, may be empty |
 | `latest_submitted_at` | ISO time or `None` |
 | `pinned`, `selected` | bools; `selected` marks the focused row |
-| `ttys` | tty names (`"ttys003"`) owned by the row; used to match `claude` processes; may be empty |
+| `ttys` | tty names (`"ttys003"`) owned by the row; used to match agent processes; may be empty |
 
 The field names come from cmux, the first adapter; every adapter fills the same keys.
 
@@ -296,7 +296,7 @@ wezterm = "my_package.wezterm:WeztermAdapter"
 ```
 
 If your terminal exports a pane id to child shells (like `ITERM_SESSION_ID` or `TMUX_PANE`), add a regex for it
-in `daemon/shufler/processes.py` so running `claude` processes match by env; otherwise tty matching works as
+in `daemon/shufler/processes.py` so running agent processes match by env; otherwise tty matching works as
 long as you fill `ttys`.
 
 ### Testing

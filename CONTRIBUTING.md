@@ -17,10 +17,10 @@ cd web && npx tsc --noEmit && npx vitest run
 
 ## Add an adapter
 
-Adapters live in `daemon/shufler/adapters/<kind>/`. Each kind has a Protocol in its `__init__.py`: terminal, agent, scm, review or tracker.
+Adapters live in `daemon/shufler/adapters/<kind>/`. Each kind has a Protocol in its `__init__.py`: terminal, agent, scm, review or tracker. Terminals have a guide in [`docs/TERMINALS.md`](docs/TERMINALS.md) and agent harnesses (Claude Code and Codex today) in [`docs/AGENTS.md`](docs/AGENTS.md); both can also ship as a separate package through an entry point (`shufler.terminals`, `shufler.agents`).
 
 1. Add a module next to the existing implementation, for example `terminal/tmux.py` with a `TmuxAdapter`, and implement every Protocol method. Command builders return argv lists and never run a shell.
-2. Register it in `adapters.from_config()` (terminals: the registry in `adapters/terminal/__init__.py`, chosen by `[terminal] kind`), and add the keys it needs to `daemon/config.example.toml` with commented examples.
+2. Register it in `adapters.from_config()` (terminals: the registry in `adapters/terminal/__init__.py`, chosen by `[terminal] kind`; agent harnesses: the registry in `adapters/agent/__init__.py`, chosen by `[agents] enabled`), and add the keys it needs to `daemon/config.example.toml` with commented examples.
 3. Add tests under `daemon/tests/` with fixture output from the real tool. Keep fixtures free of real names, emails, PR titles and paths, and use names like `acme/widgets`.
 4. If the adapter can be off, make sure `config.capabilities()` reports it so the web hides its levers.
 

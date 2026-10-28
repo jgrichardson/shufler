@@ -73,9 +73,17 @@ Each pull request or issue is a pod on its session's lane, in the column for its
 
 <img src="docs/images/gifs/pipeline.gif" width="820" alt="The 3D scene morphing into a flat kanban board and back">
 
+### Horizon view
+
+`H` tilts the camera low over the front rows, so the sky, the skyline and each skin's landmarks fill the top of the frame. Rows, selection and levers work as usual, and `H` again flies back to where you were. Turn it on with the **Horizon** button in the layer bar or `?camera=horizon` too.
+
+<img src="docs/images/features/horizon.png" width="100%" alt="The horizon view in the Starship skin: the board low in the frame with its row headers, and a ringed gas giant filling the sky above the stage landmarks">
+
 ### Big islands
 
-An optional layout that gives each session its own large island, with its building and a loop of track that has a stop for every stage. Its pods ride the loop to their stage. Switch with **Grid | Islands** in the top bar, `I`, or `?layout=islands`. Pipeline view always uses the grid.
+An optional layout that gives each session its own large island, with its building and a loop of track that has a stop for every stage. Its pods ride the loop to their stage. Switch with **Grid | Islands** in the top bar, `I`, or `?layout=islands`. Pipeline view always uses the grid. The horizon view works over the islands too.
+
+<img src="docs/images/features/islands.png" width="100%" alt="The big-island layout: one hexagonal island per session, each with its building, a loop of track and pods at their stages, a name tag under each island and the stage legend across the top">
 
 ### Your move
 
@@ -194,12 +202,12 @@ A drawer of local shells, for a console you want next to the scene. At most six,
 
 ## Status
 
-Shufler is early software, version 0.1.0. It was built for one developer's setup and is being opened up.
+Shufler is early software, version 0.2.0. It was built for one developer's setup and is being opened up.
 
 - It is macOS first. Terminals: cmux, iTerm2 and tmux (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
 - Agent harnesses: Claude Code and the OpenAI Codex CLI, mixed freely (see [`docs/AGENTS.md`](docs/AGENTS.md)).
 - The only supported source control host is GitHub, through the `gh` CLI.
-- This is the first release, v0.1.0. Install from a clone of the repo.
+- v0.2.0 adds the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md). Install from a clone of the repo.
 - The optional integrations (a reviewer bot, work item sources, custom commands) talk to your tools through commands you configure. They are all off by default.
 
 See [Support matrix](#support-matrix) for what is planned.
@@ -215,8 +223,8 @@ See [Support matrix](#support-matrix) for what is planned.
 | [Bun](https://bun.sh) | any recent | Builds and runs the web app. The lockfile is `bun.lock` |
 | Node | 18 or newer | Needed by the web toolchain (Vite 5, Vitest 2) |
 | [GitHub CLI](https://cli.github.com) | any recent | Run `gh auth login` first. Needed for PR data |
-| Claude Code | any recent | Sessions run in your terminal. Transcripts are read from `~/.claude/projects` |
-| [Codex CLI](https://github.com/openai/codex) | optional | Codex sessions get rows too. Transcripts are read from `~/.codex/sessions`. Picked up automatically when installed |
+| Claude Code | any recent | Sessions run in your terminal. Transcripts are read from `~/.claude/projects`. You need Claude Code, the Codex CLI or both |
+| [Codex CLI](https://github.com/openai/codex) | any recent | Codex sessions get rows too. Transcripts are read from `~/.codex/sessions`. Picked up automatically when installed; `[agents] enabled = ["codex"]` runs Codex alone |
 | A modern browser | WebGL 2 | Chrome is what the author uses |
 
 ## Install
@@ -418,7 +426,7 @@ If a session already has text typed in its input box, a dispatch is refused and 
 
 ### Layers
 
-The bar under the top bar toggles Islands, Sessions, PRs, Conflicts, Needs me, Tethers and Beams, and sets Labels to Auto, All or None. `0` keeps only islands, pods and needs-me. Your choices are saved in the browser.
+The bar under the top bar toggles Islands, Sessions, PRs, Conflicts, Needs me, Tethers and Beams, and sets Labels to Auto, All or None; the Horizon button at its end turns the horizon view on and off. `0` keeps only islands, pods and needs-me. Your choices are saved in the browser.
 
 ### Context library
 
@@ -489,7 +497,7 @@ Press `?` in the app for the full list.
 | Custom commands | Any argv you configure, with a form and a confirm step | |
 | Skins | Starship, Factory, Sky Islands, Theme Park, Casino, JSON recolours, code skins | |
 
-Also planned: `restart`, `logs` and `doctor` commands, starting a new session from the UI with account, model and effort, a changelog and release tags.
+Also planned: `restart`, `logs` and `doctor` commands, and starting a new session from the UI with harness, account, model and effort.
 
 ## Safety and privacy
 
@@ -532,15 +540,16 @@ Do not expose port 4700 beyond your machine.
 | Command | Does |
 |---|---|
 | `bin/shufler init [--force]` | Copy the example config to `~/.config/shufler/config.toml`. Will not overwrite without `--force` |
-| `bin/shufler setup` | Pick your terminal and its options, and write them to the config (`--yes`, `--terminal <kind>`) |
+| `bin/shufler setup` | Pick your terminal and its options, and the agent harnesses, and write them to the config (`--yes`, `--terminal <kind>`, `--agents auto\|claude,codex`) |
 | `bin/shufler start` | Run the daemon in the background (or through launchd if installed) and wait until healthy. It serves `web/dist` |
 | `bin/shufler stop` | Stop the daemon |
-| `bin/shufler status` | Show the process, health and each source's age and error |
+| `bin/shufler status` | Show the process, health, the agent harnesses watched, and each source's age and error |
 | `bin/shufler dev` | Daemon with `--reload` plus `bun run dev`. Allows the `:5173` origin |
 | `bin/shufler install` | Install and load a launchd agent that starts at login |
 | `bin/shufler uninstall` | Unload and remove it |
 | `bin/shufler test [args]` | Run the daemon tests with pytest |
 | `bin/shufler library ...` | Manage the context library: `add`, `list`, `grant`, `send` |
+| `bin/shufler version` | Print the version |
 
 ## Development
 
@@ -573,7 +582,7 @@ To add an adapter today: put a module beside the existing ones, implement its Pr
 
 ## Roadmap
 
-Ideas that did not make the first release. Some are close, some are a wish list. If one matters to you, open an issue or pick it up.
+Ideas that are not built yet. Some are close, some are a wish list. If one matters to you, open an issue or pick it up.
 
 **Agents**
 - **MCP server.** Let your agents ask Shufler what is running, what is waiting on you, and whether a PR is green, through read-only tools such as `status`, `needs_you`, `get_pr` and `read_session`. A "foreman" agent could watch the whole floor for you. A second, opt-in tier would let an agent dispatch a prompt or answer a question in another session, with the same preview step the app uses.
