@@ -34,6 +34,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 from . import config
@@ -695,6 +696,9 @@ def cli_path() -> str:
     """The command an agent harness should launch: bin/shufler in a clone, the installed `shufler` otherwise."""
     if not config.INSTALLED:
         return str(config.ROOT / "bin" / config.SLUG)
+    exe = Path(sys.argv[0]).absolute()  # the `shufler` this ran as, unresolved (Homebrew's link survives upgrades)
+    if exe.name == config.SLUG and exe.is_file():
+        return str(exe)
     return shutil.which(config.SLUG) or config.SLUG
 
 

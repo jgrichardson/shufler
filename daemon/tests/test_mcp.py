@@ -298,3 +298,16 @@ def test_print_config_carries_port_and_config_overrides(monkeypatch):
     monkeypatch.setenv("SHUFLER_PORT", "4787")
     out = mcp_server.print_config()
     assert "-e SHUFLER_PORT=4787" in out and 'SHUFLER_PORT = "4787"' in out
+
+
+def test_print_config_points_an_installed_copy_at_its_own_command(monkeypatch, tmp_path):
+    from shufler import config
+
+    exe = tmp_path / "bin" / "shufler"
+    exe.parent.mkdir()
+    exe.write_text("#!/bin/sh\n")
+    monkeypatch.setattr(config, "INSTALLED", True)
+    monkeypatch.setattr(mcp_server.sys, "argv", [str(exe), "mcp"])
+    assert mcp_server.cli_path() == str(exe)
+    monkeypatch.setattr(config, "INSTALLED", False)
+    assert mcp_server.cli_path().endswith("/bin/shufler") and mcp_server.cli_path() != str(exe)
