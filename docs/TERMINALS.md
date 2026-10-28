@@ -42,7 +42,7 @@ prefix_separator = " · "
 ```
 
 `kind = "auto"` (the default when `kind` is missing) picks the first terminal that is running, in the order
-cmux, iTerm2, tmux (then any plug-in); if none is running, the first one installed; if none is installed, `none`. The `utility` and `processes` options (see
+cmux, iTerm2, tmux (then any plug-in); if none is running, `none`. An installed terminal that is not running is not chosen. `auto` is resolved once, when the daemon starts, so a daemon that starts at login before the terminal app falls back to `none` until it is restarted or `kind` is set explicitly (for example `kind = "iterm2"`). The `utility` and `processes` options (see
 `daemon/config.example.toml`) live under `[terminal]`, next to `kind`. The environment variable
 `SHUFLER_TERMINAL=iterm2` overrides `kind` for one run, which is handy for a second test daemon.
 
@@ -332,7 +332,7 @@ Register it with one line in `REGISTRY` in `adapters/terminal/__init__.py`:
 
 ```python
 REGISTRY = {"cmux": CmuxAdapter, "iterm2": ITerm2Adapter, "tmux": TmuxAdapter, "wezterm": WeztermAdapter,
-            "none": NoTerminalAdapter}  # keep "none" last: auto-detect falls back to it
+            "none": NoTerminalAdapter}  # keep "none" last: auto-detect picks a running terminal, else it
 ```
 
 or, from a separate package, with an entry point (no change to Shufler itself):

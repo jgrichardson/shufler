@@ -327,7 +327,7 @@ Everything machine-specific lives in one TOML file. The daemon looks for it in t
 |---|---|---|
 | `[app] port` | `4700` | Port the daemon listens on. It always binds to `127.0.0.1` |
 | `[app] owner_aliases` | `["me"]` | Names in ledger "Ball" cells that mean you |
-| `[terminal] kind` | `auto` | `cmux`, `iterm2`, `tmux`, `none` or `auto`. Each terminal has its own section (`[cmux] bin`, ...). `none` works with any terminal: one row per running session, with the levers that need a terminal greyed out. `auto` picks the first terminal running, else the first installed, else `none` |
+| `[terminal] kind` | `auto` | `cmux`, `iterm2`, `tmux`, `none` or `auto`. Each terminal has its own section (`[cmux] bin`, ...). `none` works with any terminal: one row per running session, with the levers that need a terminal greyed out. `auto` picks the first terminal running, else `none` (an installed terminal that is not running does not count); it is decided once at daemon start, so set `kind` explicitly if the daemon starts at login before your terminal |
 | `[terminal] command_titles` | empty | Workspace titles that get the "command" domain (your control workspaces) |
 | `[terminal] utility` | empty | Workspace titles that get no row |
 | `[agents] enabled` | `"auto"` | Agent harnesses to watch: `["claude", "codex"]`, or `"auto"` for Claude Code plus every installed harness. See [`docs/AGENTS.md`](docs/AGENTS.md) |

@@ -31,7 +31,7 @@ All notable changes to Shufler are recorded here. The format follows
   app (`packaging/smoke-test.sh`).
 - Works in any terminal: `[terminal] kind = "none"` (offered by
   `shufler setup`, and what `auto` falls back to when no supported terminal
-  is running or installed) draws one row per running `claude` or `codex`
+  is running; resolved once at daemon start, so set `kind` if the daemon starts at login before your terminal) draws one row per running `claude` or `codex`
   session straight from `ps`, with state, model, tokens, questions and PRs as
   usual. Sending, answering, skills, library send, Focus, new tabs and
   terminal sync are off.

@@ -110,14 +110,14 @@ def detect_all(cfg: dict | None = None) -> dict[str, Detection]:
 
 
 def auto_kind(cfg: dict | None = None) -> str:
-    """The first registered terminal that is running, else the first one installed, else "none" (rows from running
-    agent sessions; "none" itself is always installed and never running, so it is reached last)."""
+    """Running terminal first, then "none" (rows from running agent sessions), then a terminal that is only installed.
+
+    "none" beats an installed-but-not-running terminal, so a quit iTerm2 does not leave Shufler waiting on a window
+    that is not there. The price: a daemon that starts at login, before the terminal app, resolves to "none" and
+    keeps it until restart (the choice is made once per process) or until `[terminal] kind` is set explicitly."""
     found = detect_all(cfg)
     for kind, d in found.items():
-        if d.running:
-            return kind
-    for kind, d in found.items():
-        if d.installed:
+        if kind != "none" and d.running:
             return kind
     return "none"
 

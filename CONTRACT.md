@@ -543,7 +543,7 @@ every key. Sections:
 | Section | Keys and effect |
 |---|---|
 | `[app]` | `port`, `owner_aliases` (lower-case names meaning the person running Shufler; default `["me"]`), `actions_log`, `cache_dir` |
-| `[terminal]` | `kind` (`cmux`, `iterm2`, `tmux`, `none`, `auto`; `auto` falls back to `none` when no terminal is running or installed), `command_titles`, `utility`, `processes` (no effect with `none`) |
+| `[terminal]` | `kind` (`cmux`, `iterm2`, `tmux`, `none`, `auto`; `auto` falls back to `none` when no terminal is running), `command_titles`, `utility`, `processes` (no effect with `none`) |
 | `[cmux]`, `[iterm2]`, `[tmux]` | adapter options (`docs/TERMINALS.md`) |
 | `[agents]` | `enabled`: `"auto"` (default: Claude Code always, other harnesses when installed) or a list such as `["claude", "codex"]`; `SHUFLER_AGENTS` overrides it (`docs/AGENTS.md`) |
 | `[agent]`, `[[agent.accounts]]` | Claude Code: `adapter` (only `claude-code`); per account `name`, `label`, `projects_dir`, `claude_json`, `settings`, `usage_cache` |

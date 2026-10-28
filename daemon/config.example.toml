@@ -15,7 +15,7 @@ owner_aliases = ["me"]                              # names in ledger "Ball" cel
 
 # ---------------------------------------------------------------- terminal
 # Which terminal hosts your agent sessions: "cmux", "iterm2", "tmux", "none", or "auto" (the first one running,
-# else the first one installed, else "none"). "none" works with any terminal: one row per running claude or codex
+# else "none"; resolved once at daemon start, so set a kind if the daemon starts before your terminal). "none" works with any terminal: one row per running claude or codex
 # session, read from ps, with sending, answering, Focus and new tabs off. `shufler setup` writes this for you.
 # docs/TERMINALS.md explains each mapping.
 [terminal]
