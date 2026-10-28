@@ -1,7 +1,7 @@
 {
   "name": "shufler-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A 3D control room for developers who run many AI coding agent sessions at once.",
   "license": "MIT",
   "repository": {

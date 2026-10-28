@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Shufler: A 3D control room for developers who run many AI coding agent sessions at once.
-# Control script: init | setup | dev | start | stop | status | install | uninstall | test | library
+# Control script: init | setup | dev | start | stop | status | install | uninstall | test | library | version
 set -euo pipefail
 
 # The product's names, each defined once here (the daemon's own copy is in daemon/shufler/config.py).
@@ -210,6 +210,26 @@ cmd_init() {
   echo "edit it (uncomment the adapters you use), pick your terminal with '$NAME setup', then: $NAME start"
 }
 
+version() { sed -n 's/^version = "\(.*\)"/\1/p' "$DAEMON/pyproject.toml" | head -n 1; }
+
+usage() {
+  cat <<EOF
+Shufler $(version): A 3D control room for developers who run many AI coding agent sessions
+(Claude Code and the OpenAI Codex CLI) at once.
+
+usage: $NAME <command>
+  init [--force]        copy the example config to ~/.config/$NAME/config.toml
+  setup                 pick your terminal (cmux, iTerm2, tmux) and agent harnesses (--agents auto|claude,codex)
+  start | stop          run or stop the daemon on http://$HOST:$PORT
+  status                process, health, and the age of each source (terminal, agent harnesses, GitHub)
+  dev                   daemon with reload plus the Vite dev server
+  install | uninstall   launchd login item
+  test [args]           daemon tests
+  library ...           context library: add, list, grant, send
+  version               print the version
+EOF
+}
+
 case "${1:-}" in
   init) shift; cmd_init "$@" ;;
   setup) shift; cmd_setup "$@" ;;
@@ -221,9 +241,7 @@ case "${1:-}" in
   uninstall) cmd_uninstall ;;
   test) shift; cmd_test "$@" ;;
   library) shift; cmd_library "$@" ;;
-  -h|--help|help)
-    echo "Shufler: A 3D control room for developers who run many AI coding agent sessions at once."
-    echo "usage: $NAME init|setup|dev|start|stop|status|install|uninstall|test|library" ;;
-  *) echo "Shufler: A 3D control room for developers who run many AI coding agent sessions at once." >&2
-     echo "usage: $NAME init|setup|dev|start|stop|status|install|uninstall|test|library" >&2; exit 2 ;;
+  version|-V|--version) echo "$NAME $(version)" ;;
+  -h|--help|help) usage ;;
+  *) usage >&2; exit 2 ;;
 esac

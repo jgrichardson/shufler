@@ -205,6 +205,10 @@ A full skin supplies every slot with `defineSkin({...})`; `web/src/skins/starshi
   lens, so a Backdrop should carry its sky and ground out to the horizon with no seam or edge. Scenery
   that sits near the horizon line is never framed by the Overview, so you can give that view its own
   skyline (Starship's gas giant, Factory's ridgelines) without changing the default look.
+- The big-island layout (`I`, or `?layout=islands`) reuses your slots at a larger scale: each session's island
+  is your `Platform` (with a larger `radius` and a `stretch`), and its loop of track is your `Ramp`, repeated
+  round the loop as instanced copies, so a `Ramp` should read well in short straight pieces. The track sits
+  just above the Platform's top (y = 0). No extra slot is needed.
 
 ### Slots
 
@@ -215,7 +219,7 @@ All prop types are in `web/src/skins/types.ts`.
 | `Backdrop` | sky, lights, environment, scenery | rebuilt on skin and theme switch |
 | `Platform` | a floating base, top at y = 0 | rows and the warehouse stand on one |
 | `Island` | a row's platform plus decoration | keep clear of `buildingLocal` |
-| `Session` | one Claude workspace | use `height`; draw the lamp from `lampColor` |
+| `Session` | one agent session (Claude Code or Codex) | use `height`; draw the lamp from `lampColor` |
 | `Landmark` | the district landmark behind a column | about 10 × 8 |
 | `Lane`, `Ramp`, `DistrictBand` | the board decks | Lane runs `x0`→`x1` along +x |
 | `PodBody` | an item on the board | about 2 × 1.4 × 1.2; `dot` asks for a flat token |

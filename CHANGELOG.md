@@ -4,7 +4,7 @@ All notable changes to Shufler are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-28
 
 ### Added
 
@@ -18,6 +18,34 @@ All notable changes to Shufler are recorded here. The format follows
   the detected harnesses. See `docs/AGENTS.md`.
 - A `harness` field on each station, a small harness badge on Codex rows, and
   Codex-format messages in the context library.
+- A horizon view: `H`, the Horizon button in the layer bar or
+  `?camera=horizon` tilts the camera low over the front rows so the sky, the
+  skyline and each skin's landmarks fill the top of the frame. `H` again
+  flies back to the view you had.
+- Horizon scenery for the skins: a ringed gas giant for Starship, distant
+  ridges for Factory and a hall haze for Casino, placed where the default
+  view never looks.
+- A big-island layout: **Grid | Islands** in the top bar, `I` or
+  `?layout=islands` gives each session its own large island with a loop of
+  track and a lit stop for every stage, and pods ride the loop to their
+  stage. The grid stays the default, the choice is saved in the browser, and
+  Pipeline view always draws the grid.
+- The horizon view works over both layouts; switching layout while it is on
+  keeps it on and re-frames it.
+- `bin/shufler version`, and a fuller `bin/shufler --help`.
+
+### Changed
+
+- `pending_question` may carry `kind`, `source` and a `key` per option, and
+  `capabilities` lists the enabled `agents`. Both are additive; see
+  `CONTRACT.md`.
+- Row headers slim down while the horizon view is on, and become name tags
+  under each island in the big-island layout.
+
+### Fixed
+
+- Theme Park's lawn now meets the sky without a seam when seen from low.
+- Casino no longer shows a black void above its walls from a low camera.
 
 ## [0.1.0] - 2026-10-27
 
@@ -40,4 +68,5 @@ The first public release.
   commands, all configured in `~/.config/shufler/config.toml`.
 - A mock mode (`?mock=1`) for trying it without any setup.
 
+[0.2.0]: https://github.com/jgrichardson/shufler/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jgrichardson/shufler/releases/tag/v0.1.0
