@@ -477,12 +477,12 @@ function Lights({ kit, light }: { kit: Kit; light: boolean }) {
   const pos = dir.multiplyScalar(260).add(BOARD_CENTRE);
   return (
     <>
-      <hemisphereLight args={[p.hemiSky, p.hemiGround, light ? 1.25 : 1.15]} />
-      <directionalLight position={[BOARD_CENTRE.x + 120, 80, 200]} intensity={light ? 0.45 : 0.55} color={p.fillLight} />
+      <hemisphereLight args={[p.hemiSky, p.hemiGround, light ? 1.25 : 2.1]} />
+      <directionalLight position={[BOARD_CENTRE.x + 120, 80, 200]} intensity={light ? 0.45 : 1.1} color={p.fillLight} />
       <directionalLight
         ref={keyRef}
         position={pos.toArray()}
-        intensity={light ? 2.9 : 2.0}
+        intensity={light ? 2.9 : 3.0}
         color={p.keyLight}
         castShadow
         shadow-mapSize-width={2048}
