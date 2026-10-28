@@ -8,6 +8,12 @@ All notable changes to Shufler are recorded here. The format follows
 
 ### Added
 
+- Command Post, a sixth skin (`?skin=commandpost`): a field base on a
+  living map, with compounds for rows, command tents and container cabins
+  for sessions, supply convoys for work items, field facilities for stages,
+  a signals hut for the library and a depot with a helipad for shipped work.
+  Logistics and ops only. Light and dark themes, horizon camera scenery and
+  big-island layout included; all geometry is procedural.
 - Packaged installs. The daemon builds as a wheel and sdist named `shufler`
   that carry the built web app, so `pipx install` or `uv tool install` of a
   release wheel gives a working `shufler` command with no clone, Bun or Node.
