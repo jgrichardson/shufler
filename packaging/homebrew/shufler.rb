@@ -18,19 +18,30 @@ class Shufler < Formula
 
   depends_on "python@3.13"
 
+  # The venv is built in post_install, after Homebrew's dylib relinking pass: the prebuilt dependency wheels
+  # (watchfiles, uvloop, pydantic-core) lack the Mach-O header padding that pass needs.
   def install
-    python = formula_opt_bin("python@3.13")/"python3.13"
-    system python, "-m", "venv", libexec
-    system libexec/"bin/python", "-m", "pip", "install", "--no-cache-dir", "--disable-pip-version-check", buildpath
-    bin.install_symlink libexec/"bin/shufler"
+    (libexec/"src").install Dir["*"]
+    # a real launcher, not a symlink: the venv only exists after post_install, and Homebrew prunes dangling links
+    (bin/"shufler").write_env_script libexec/"venv/bin/shufler", {}
+  end
+
+  def post_install
+    python = Formula["python@3.13"].opt_bin/"python3.13"
+    rm_r libexec/"venv" if (libexec/"venv").exist?
+    system python, "-m", "venv", libexec/"venv"
+    system libexec/"venv/bin/python", "-m", "pip", "install", "--no-cache-dir", "--disable-pip-version-check",
+           libexec/"src"
   end
 
   def caveats
     <<~EOS
       Shufler reads pull requests through the GitHub CLI: brew install gh, then gh auth login.
 
-      Pick your terminal (cmux, iTerm2 or tmux) and write ~/.config/shufler/config.toml:
+      Pick your terminal (cmux, iTerm2, tmux or none) and write ~/.config/shufler/config.toml:
         shufler setup
+      To see pull requests, set your repo under [scm] in that file:
+        repo = "owner/name"
       Then start the daemon and open http://127.0.0.1:4700:
         shufler start
       Or run it at login with `brew services start shufler`. With cmux, start it from a shell inside a cmux

@@ -25,9 +25,12 @@ Beta (v0.3.0, pre-1.0), macOS, any terminal (cmux, iTerm2 and tmux get the most)
 
 ```bash
 brew install jgrichardson/shufler/shufler   # or: pipx install shufler, or: uv tool install shufler
-shufler setup            # writes ~/.config/shufler/config.toml; then set scm.repo in it
-shufler start            # open http://127.0.0.1:4700
+shufler setup            # picks your terminal, writes ~/.config/shufler/config.toml
+$EDITOR ~/.config/shufler/config.toml   # under [scm], set repo = "owner/name" to see its PRs
+shufler start            # then open http://127.0.0.1:4700
 ```
+
+Just looking? The [live demo](https://shufler.app) runs on sample data with nothing to install.
 
 ## Why this exists
 
@@ -292,13 +295,22 @@ pipx install shufler
 uv tool install shufler
 ```
 
-Then, for any of those:
+Then, for any of those, five steps:
+
+1. **Sign in to GitHub once**, so Shufler can read pull requests: `gh auth login`.
+2. **Run setup**: `shufler setup`. It lists the terminals it found, picks one (or use `shufler setup --terminal iterm2`, `cmux`, `tmux` or `none`), and writes `~/.config/shufler/config.toml`.
+3. **Point it at your repo.** Open `~/.config/shufler/config.toml` and set `repo` under `[scm]` to the GitHub repo your agents work in, as `owner/name`, for example `repo = "your-org/your-app"`. Leave it empty and you still get a row per session, just no pull requests.
+4. **Start it**: `shufler start`. With cmux, run this from a shell inside a cmux workspace (see below).
+5. **Open http://127.0.0.1:4700.** The status bar at the bottom left should say **Live**. If something looks empty, `shufler status` names the data source that is failing and why.
 
 ```bash
-shufler setup           # writes ~/.config/shufler/config.toml and picks your terminal
-$EDITOR ~/.config/shufler/config.toml   # set scm.repo, at least
-shufler start
+gh auth login
+shufler setup
+$EDITOR ~/.config/shufler/config.toml   # [scm] repo = "owner/name"
+shufler start                           # then open http://127.0.0.1:4700
 ```
+
+Changed the config later? Run `shufler stop && shufler start` to pick it up.
 
 **From source**, for development or the newest code. Here the command is `bin/shufler`, which adds `dev` and `test`:
 
