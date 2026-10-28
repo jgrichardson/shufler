@@ -30,7 +30,7 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx vite build
         env:
-          SHUFLER_BASE: /${{ github.event.repository.name }}/
+          SHUFLER_BASE: ./
           VITE_DEMO: '1'
       - uses: actions/upload-pages-artifact@v3
         with:

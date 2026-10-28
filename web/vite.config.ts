@@ -30,7 +30,7 @@ function asDaemon(opts: ProxyOptions): ProxyOptions {
 }
 
 export default defineConfig({
-  // A static demo build sets SHUFLER_BASE (for example /shufler/ on GitHub Pages); the daemon serves the app at /.
+  // A static demo build sets SHUFLER_BASE (./ on GitHub Pages, so it works under /shufler/ and on a custom domain); the daemon serves the app at /.
   base: process.env.SHUFLER_BASE || '/',
   plugins: [react()],
   server: {
