@@ -14,3 +14,5 @@ export const STORAGE_PREFIX = 'shufler.';
  * Shown as-is in labels; change it here to name your own reviewer. The wire fields are `reviewer*` (CONTRACT.md).
  */
 export const REVIEWER_NAME = 'Review bot';
+/** The project's home, linked from the hosted demo (a VITE_DEMO=1 build). */
+export const REPO_URL = 'https://github.com/jgrichardson/shufler';

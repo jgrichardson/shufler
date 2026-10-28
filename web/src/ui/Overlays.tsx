@@ -8,7 +8,7 @@ import { listSkins, resolveSkin, useResolvedTheme, useSkinStore } from '../skins
 import { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from './focusTrap';
 import { useLibDrag } from './library/drag';
-import { PRODUCT_NAME, REVIEWER_NAME, TAGLINE } from '../lib/brand';
+import { PRODUCT_NAME, REPO_URL, REVIEWER_NAME, TAGLINE } from '../lib/brand';
 import { useTerminalName } from '../lib/terminalName';
 import { dispatch, toggleLibrary, useWorld, useItem, useStation } from '../store';
 import { BALL_COLOR, stationColor } from '../lib/colors';
@@ -215,6 +215,11 @@ export function StatusBar() {
         {conn === 'mock' ? <span className="muted demo-note">not your sessions · actions are simulated</span> : label}
         {last ? <span className="muted updated"> · updated {duration(Math.max(0, now - last) / 1000)} ago</span> : null}
       </span>
+      {import.meta.env.VITE_DEMO === '1' && (
+        <a className="demo-get" href={REPO_URL} target="_blank" rel="noopener noreferrer">
+          Get {PRODUCT_NAME} on GitHub
+        </a>
+      )}
       <span className={c.needs ? 'hot-text' : ''}>
         Needs you <b>{c.needs}</b>
       </span>
