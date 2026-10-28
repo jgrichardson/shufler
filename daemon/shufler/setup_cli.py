@@ -1,12 +1,15 @@
-"""`shufler setup`: pick the terminal and write it to the config file. `shufler status` asks it too.
+"""`shufler setup`: pick the terminal (and agent harnesses) and write them to the config file. `shufler status`
+asks them too.
 
-    python -m shufler.setup_cli setup [--terminal KIND] [--yes] [--set KEY=VALUE ...] [--config PATH]
+    python -m shufler.setup_cli setup [--terminal KIND] [--agents auto|claude,codex] [--yes] [--set KEY=VALUE ...]
+                                      [--config PATH]
     python -m shufler.setup_cli status [--config PATH]
 
 Setup lists every registered terminal adapter with what was detected, defaults to the current choice (else the
 detected one), asks for that adapter's options and writes `[terminal] kind` plus the options into the config
 (creating it from config.example.toml first when missing). Re-running shows the current choice and changes it.
-`--terminal` and `--yes` make it non-interactive. Nothing here touches the running daemon.
+`--terminal` and `--yes` make it non-interactive. It also lists the agent harnesses (Claude Code, Codex) with what
+was detected; `--agents` writes `[agents] enabled` (unset means auto). Nothing here touches the running daemon.
 """
 
 from __future__ import annotations
@@ -64,10 +67,14 @@ def adapter_option(cfg: dict, kind: str, key: str, default: str) -> str:
     return default if v is None else str(v)
 
 
-def write_choice(path: Path, kind: str, options: dict[str, str]) -> None:
+def write_choice(path: Path, kind: str, options: dict[str, str], agents: list[str] | str | None = None) -> None:
     import tomlkit
 
     doc = tomlkit.parse(path.read_text())
+    if agents is not None:
+        if "agents" not in doc:
+            doc["agents"] = tomlkit.table()
+        doc["agents"]["enabled"] = agents
     if "terminal" not in doc:
         doc["terminal"] = tomlkit.table()
     term = doc["terminal"]
@@ -81,11 +88,26 @@ def write_choice(path: Path, kind: str, options: dict[str, str]) -> None:
     tmp.replace(path)
 
 
+def agent_lines(cfg: dict, out=print) -> list[str]:
+    """Print the registered agent harnesses with detection and which run; returns their ids."""
+    from .adapters.agent import detect_all, registered, setting
+
+    reg = registered()
+    found = detect_all(cfg)
+    want = setting(cfg)
+    on = [h for h in reg if (h == "claude" or found[h].installed)] if want == "auto" else [h for h in reg if h in want]
+    out("Agent harnesses:" + (" (auto: Claude Code always, others when installed)" if want == "auto" else ""))
+    for h, cls in reg.items():
+        out(f"  {h:<8} {getattr(cls, 'label', h):<12} {found[h].detail}{'  [on]' if h in on else ''}")
+    return list(reg)
+
+
 def setup(argv: list[str], inp=input, out=print) -> int:
     ap = argparse.ArgumentParser(prog="shufler setup")
     ap.add_argument("--terminal", help="cmux, iterm2, tmux, ... (non-interactive)")
     ap.add_argument("--yes", action="store_true", help="accept the current or detected terminal and its options")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="an option for that terminal")
+    ap.add_argument("--agents", help="agent harnesses: auto, or a comma list such as claude,codex")
     ap.add_argument("--config", help="config file to write (default: the one the daemon reads)")
     args = ap.parse_args(argv)
 
@@ -113,6 +135,7 @@ def setup(argv: list[str], inp=input, out=print) -> int:
         out(f"  {i}. {kind:<8} {label:<8} {d.detail}{'  [' + ', '.join(tags) + ']' if tags else ''}")
     if current == "auto":
         out(f"  current setting: auto (resolves to {detected})")
+    agents = agent_lines(cfg, out)
 
     default = current if current in reg else detected
     if args.terminal:
@@ -158,9 +181,19 @@ def setup(argv: list[str], inp=input, out=print) -> int:
                 return 2
             options[key] = value
         options.update(sets)  # extra keys for adapters this file does not know about
-    write_choice(path, kind, options)
+    chosen = None
+    if args.agents:
+        raw = args.agents.strip().lower()
+        chosen = "auto" if raw == "auto" else [x.strip() for x in raw.split(",") if x.strip()]
+        unknown = [x for x in chosen if x not in agents] if chosen != "auto" else []
+        if unknown:
+            out(f"unknown agent harness {', '.join(unknown)}; registered: {', '.join(agents)}")
+            return 2
+    write_choice(path, kind, options, chosen)
     shown = ", ".join(f"{k}={v!r}" for k, v in options.items())
     out(f"terminal = {kind}{' (' + shown + ')' if shown else ''} written to {path}")
+    if chosen is not None:
+        out(f"agents = {chosen if chosen == 'auto' else ', '.join(chosen)} written to {path}")
     if kind == "iterm2":
         out("macOS asks once to let the app running Shufler control iTerm2; allow it (System Settings > "
             "Privacy & Security > Automation). `shufler status` checks it.")
@@ -188,6 +221,13 @@ def status(argv: list[str], out=print) -> int:
     off = [f for f, on in caps_of(term).items() if not on]
     out(f"terminal: {term.name} ({how}), {'reachable' if ok else 'NOT reachable'}: {detail}"
         + (f"; off: {', '.join(off)}" if off else ""))
+    from .adapters.agent import detect_all, enabled, registered, setting
+    found = detect_all(config.CFG)
+    how = "auto-detected" if setting(config.CFG) == "auto" else "configured"
+    on = enabled(config.CFG)
+    out(f"agents: {', '.join(on) or 'none'} ({how})")
+    for h in on:
+        out(f"  {h}: {getattr(registered()[h], 'label', h)}, {found[h].detail}")
     return 0 if ok else 1
 
 

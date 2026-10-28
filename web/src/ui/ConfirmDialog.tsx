@@ -126,7 +126,7 @@ export function ConfirmDialog() {
         {message != null && (
           <div className="msg-edit">
             <label className="modal-label" htmlFor="confirm-message">
-              Message{edited ? ' (edited)' : ''} · one line per prompt; /add-dir lines go first
+              Message{edited ? ' (edited)' : ''} · one line per prompt{preview?.facts?.harness === 'codex' ? '' : '; /add-dir lines go first'}
             </label>
             <textarea id="confirm-message" className="input mono" rows={Math.min(8, message.split('\n').length + 2)} value={message} spellCheck={false} onChange={(e) => setMessage(e.target.value)} />
             {edited && (

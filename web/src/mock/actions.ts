@@ -59,10 +59,18 @@ export function mockPreview(action: ActionName, p: ActionParams): ActionPreview 
       return { command, url, warnings, error, facts, confirm: sk.confirm };
     }
     case 'dispatch':
-    case 'answer_question':
+    case 'answer_question': {
       command = `${CMUX} send --workspace ${p.station_id} --surface surface:1 ${q(p.text)} && ${CMUX} send-key --workspace ${p.station_id} --surface surface:1 Return`;
-      if (action === 'answer_question') facts.question = 'pending AskUserQuestion';
+      // a Codex approval answers with the option's own key, as the daemon does
+      const pq = useWorld.getState().snapshot?.stations.find((x) => x.id === p.station_id)?.pending_question;
+      const opt = action === 'answer_question' && pq?.kind === 'approval' ? pq.options.find((o) => o.label === p.text) : undefined;
+      if (opt?.key) {
+        command = opt.key === 'Escape' ? `${CMUX} send-key --workspace ${p.station_id} --surface surface:1 Escape` : `${CMUX} send --workspace ${p.station_id} --surface surface:1 ${opt.key}`;
+        warnings.push(`Answers the approval prompt with keys: ${opt.key}`);
+      }
+      if (action === 'answer_question') facts.question = pq?.kind === 'approval' ? 'pending approval' : 'pending AskUserQuestion';
       break;
+    }
     case 'postmerge': {
       const w = item(p.pr);
       if (w && w.phase !== 'deploy' && w.phase !== 'shipped') error = `#${p.pr} is not merged yet`;

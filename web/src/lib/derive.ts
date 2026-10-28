@@ -171,6 +171,7 @@ function normStation(s: Raw): Station {
     ports: arr<number>(s.ports),
     session_id: s.session_id ?? null,
     account: s.account ?? null,
+    harness: typeof s.harness === 'string' ? s.harness : null,
     note: s.note && s.note.state ? { state: s.note.state, text: String(s.note.text ?? ''), ts: num(s.note.ts) ?? 0 } : null,
     activity: {
       last_at: num(activity.last_at),

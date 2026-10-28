@@ -75,10 +75,12 @@ def run(store, adapters, days: int = 30, now: float | None = None, force: bool =
             events += scm_events(adapters.scm, since_day, since_ts, adapters.reviewer)
         except Exception:  # noqa: BLE001 - best effort
             log.exception("scm backfill failed")
-    try:
-        events += agent_events(adapters.agent, since_ts)
-    except Exception:  # noqa: BLE001
-        log.exception("transcript backfill failed")
+    agents = adapters.all_agents().values() if hasattr(adapters, "all_agents") else [adapters.agent]
+    for agent in agents:
+        try:
+            events += agent_events(agent, since_ts)
+        except Exception:  # noqa: BLE001
+            log.exception("transcript backfill failed (%s)", getattr(agent, "name", "agent"))
     store.add_events(sorted(events, key=lambda e: e["ts"]))
     store.set_meta(META_KEY, str(now))
     return len(events)

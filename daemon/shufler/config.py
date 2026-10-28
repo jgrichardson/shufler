@@ -99,7 +99,8 @@ UTILITY_TITLES = [str(x) for x in (terminal.get("utility") or [])]
 PROCESSES_ENABLED = terminal.get("processes", True) is not False and env("PROCESSES") != "0"
 PROCESS_SESSION_RECENT_S = 3600
 
-# agent accounts
+# agent accounts (Claude Code). Which harnesses run at all is [agents] enabled, read by adapters/agent; Codex reads
+# its own [codex] section there.
 agent = section("agent")
 AGENT_ADAPTER = agent.get("adapter", "claude-code")
 ACCOUNTS: dict[str, dict] = {}
@@ -299,6 +300,12 @@ def terminal_kind() -> str:
     return resolve_kind(TERMINAL_KIND, CFG)
 
 
+def enabled_agents() -> list[str]:
+    """The agent harnesses that run ([agents] enabled, "auto" resolved by the adapters/agent registry)."""
+    from .adapters.agent import enabled
+    return enabled(CFG)
+
+
 def public_commands() -> list[dict]:
     """[[commands]] as the web sees them: no argv or env (the confirm panel shows the filled command)."""
     keep = ("id", "label", "description", "scope", "confirm", "prod")
@@ -314,6 +321,7 @@ def capabilities() -> dict:
         "product": PRODUCT_NAME,
         "terminal": terminal_kind(),
         "agent": AGENT_ADAPTER,
+        "agents": enabled_agents(),
         "scm": SCM_ADAPTER if REPO else None,
         "reviewer": bool(REVIEW_ENABLED),
         "reviewer_retrigger": bool(REVIEW_ENABLED and (REVIEWER_RETRIGGER_ARGV or (REVIEWER_RETRIGGER_COMMENT and REPO))),

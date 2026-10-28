@@ -1,7 +1,8 @@
 """Seams for everything machine- or vendor-specific.
 
 One small Protocol per kind (terminal, agent, scm, review, tracker). Terminals
-have a registry (cmux, iTerm2, tmux; adapters/terminal); the others have one
+have a registry (cmux, iTerm2, tmux; adapters/terminal), and so do agent
+harnesses (Claude Code, Codex; adapters/agent); the others have one
 implementation each today. Command builders are pure and return argv lists,
 so action previews show exactly what will run. `from_config()` picks the
 implementations named in config.toml; an optional adapter that is off is None.
@@ -12,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .. import config
+from . import agent as agent_registry
 from .agent import AgentAdapter, ClaudeCodeAdapter
 from .review import ExternalReviewer, ReviewerAdapter
 from .scm import GitHubAdapter, ScmAdapter
@@ -23,10 +25,32 @@ from .tracker import BoardAdapter, IntakeAdapter, LedgerAdapter, WorkItemSource
 @dataclass
 class Adapters:
     terminal: TerminalAdapter
-    agent: AgentAdapter
+    agent: AgentAdapter  # the primary harness (Claude Code when enabled): skills and the old single-agent paths
     scm: ScmAdapter | None
     reviewer: ExternalReviewer | None
     trackers: dict[str, WorkItemSource] = field(default_factory=dict)
+    agents: dict[str, AgentAdapter] = field(default_factory=dict)  # every enabled harness by id ("claude", "codex")
+
+    def all_agents(self) -> dict[str, AgentAdapter]:
+        return self.agents or {getattr(self.agent, "harness", "claude"): self.agent}
+
+    def agent_for(self, harness: str | None) -> AgentAdapter:
+        """The adapter for a station's harness; the primary one when unknown."""
+        return self.all_agents().get(harness or "") or self.agent
+
+    def transcript_index(self):
+        """One index over every enabled harness's transcripts (transcripts.MultiIndex when more than one)."""
+        agents = self.all_agents()
+        if len(agents) == 1:
+            return next(iter(agents.values())).transcript_index()
+        from ..transcripts import MultiIndex
+        return MultiIndex({h: a.transcript_index() for h, a in agents.items()})
+
+    def accounts(self) -> dict[str, dict]:
+        out: dict[str, dict] = {}
+        for a in self.all_agents().values():
+            out.update(a.accounts())
+        return out
 
 
 def from_config() -> Adapters:
@@ -43,12 +67,15 @@ def from_config() -> Adapters:
     scm = GitHubAdapter(config.GH, config.REPO, config.DEPLOY_WORKFLOW, config.DEPLOY_BRANCH) if config.REPO else None
     reviewer = (ReviewerAdapter(config.REVIEWER_LOGIN_RE, config.REVIEWER_STATUS_ARGV, config.REVIEWER_RETRIGGER_ARGV,
                                 config.REVIEWER_RETRIGGER_COMMENT, scm) if config.REVIEW_ENABLED else None)
+    agents = agent_registry.build_all(config.CFG)
+    primary = agents.get("claude") or next(iter(agents.values()), None) or agent_registry.build("claude")
     return Adapters(
         terminal=build_terminal(config.TERMINAL_KIND, config.CFG),
-        agent=ClaudeCodeAdapter(config.TRANSCRIPT_ROOTS, config.ACCOUNTS, config.USAGE_CACHE),
+        agent=primary,
         scm=scm,
         reviewer=reviewer,
         trackers=trackers,
+        agents=agents,
     )
 
 

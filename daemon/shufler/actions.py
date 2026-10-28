@@ -260,7 +260,27 @@ def _dispatch_steps(p: Plan, st: dict, text: str) -> None:
         p.warnings.append("this session is active right now; the text queues behind its current turn")
     if (st.get("note") or {}).get("state") == "done":
         p.warnings.append("this session's note says done")
-    p.facts.update({"station": st.get("title"), "session_id": st.get("session_id"), "text": text})
+    p.facts.update({"station": st.get("title"), "session_id": st.get("session_id"), "text": text,
+                    "harness": st.get("harness")})
+
+
+def _keystroke_steps(p: Plan, st: dict, presses: list[tuple[str, str]]) -> None:
+    """Answer a harness prompt with keys instead of a typed line: ("text", "y") types y, ("key", "Escape") presses
+    Esc. Executed in order without the empty-input check (the prompt replaces the input box)."""
+    ws, t = st["id"], adapters.current().terminal
+    p.steps = [t.list_surfaces_argv(ws)]
+    for kind, value in presses:
+        if kind == "text":
+            never_do_check(value)
+            p.steps.append(t.send_text_argv(ws, SURFACE_PLACEHOLDER, value))
+        else:
+            p.steps.append(t.send_key_argv(ws, SURFACE_PLACEHOLDER, value))
+    p.steps.append(t.read_screen_argv(ws, SURFACE_PLACEHOLDER, 20))
+    shown = " then ".join(f"types {v}" if k == "text" else f"presses {v}" for k, v in presses)
+    p.warnings.append(f"answers {st.get('harness') or 'the agent'}'s prompt with keys: {shown}")
+    p.facts.update({"station": st.get("title"), "session_id": st.get("session_id"), "harness": st.get("harness"),
+                    "keystrokes": [list(x) for x in presses],
+                    "text": next((v for k, v in reversed(presses) if k == "text"), "")})
 
 
 def _library_send(p: Plan, snapshot: dict, params: dict) -> None:
@@ -340,10 +360,17 @@ def plan(action: str, params: dict, snapshot: dict) -> Plan:
 
     elif action == "answer_question":
         st = _station(snapshot, params)
-        if not st.get("pending_question"):
+        q = st.get("pending_question")
+        if not q:
             p.warnings.append("no open question is recorded for this session; the text goes in as a plain prompt")
-        _dispatch_steps(p, st, _text(params))
-        p.facts["question"] = (st.get("pending_question") or {}).get("question")
+        text = _text(params)
+        keys = getattr(a.agent_for(st.get("harness")), "answer_keys", None)
+        presses = keys(q, text) if keys and q else None
+        if presses:
+            _keystroke_steps(p, st, presses)  # a Codex approval: the option's key, no Return
+        else:
+            _dispatch_steps(p, st, text)
+        p.facts["question"] = (q or {}).get("question")
 
     elif action == "postmerge":
         n, w = _pr(snapshot, params, open_only=False)
@@ -593,13 +620,25 @@ def _execute_plan(p: Plan) -> dict:
         return {"ok": r2.ok, "output": "\n".join([r.combined(), r2.combined()]).strip(),
                 "error": None if r2.ok else f"rc={r2.rc}", "command": p.command}
     if p.action in DISPATCH_ACTIONS:
-        agent = adapters.current().agent
+        agent = adapters.current().agent_for(p.facts.get("harness"))
         r = _run(steps[0], p)
         surface = _first_terminal_surface(r.stdout) if r.ok else None
         if not surface:
             return {"ok": False, "output": r.combined(), "error": "no terminal surface found in that workspace",
                     "command": p.command}
         filled = [[surface if a == SURFACE_PLACEHOLDER else a for a in s] for s in steps[1:]]
+        if p.facts.get("keystrokes"):
+            outputs.append(f"surface: {surface}")
+            for s in filled[:-1]:
+                r = _run(s, p)
+                if not r.ok:
+                    return {"ok": False, "output": "\n".join(outputs + [r.combined()]),
+                            "error": f"step failed (rc={r.rc}): {shlex.join(s)}", "command": p.command}
+                time.sleep(0.4)  # let the TUI take each key before the next
+            after = _run(filled[-1], p)
+            outputs.append(after.combined())
+            return {"ok": True, "output": "\n".join(outputs), "error": None, "command": p.command,
+                    "landed": None, "echo": None}
         pairs, read = [filled[i:i + 2] for i in range(0, len(filled) - 1, 2)], filled[-1]
         outputs.append(f"surface: {surface}")
         before = _run(read, p)
@@ -611,7 +650,7 @@ def _execute_plan(p: Plan) -> dict:
             return {"ok": False, "output": "\n".join(outputs), "command": p.command, "draft": draft[:200],
                     "error": f"that session has unsent text in its input; finish or clear it in {term_label()} first"}
         if draft is None:
-            outputs.append("note: no Claude Code input box found on screen; sent anyway")
+            outputs.append(f"note: no {getattr(agent, 'label', None) or 'Claude Code'} input box found on screen; sent anyway")
         for n, pair in enumerate(pairs):
             for s in pair:
                 r = _run(s, p)

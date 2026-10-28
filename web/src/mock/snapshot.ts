@@ -22,6 +22,8 @@ type StationSeed = {
   tokens: number;
   preview: string;
   question?: Raw;
+  /** Agent harness; Claude Code unless set. */
+  harness?: 'claude' | 'codex';
 };
 
 /** The demo team's areas (lane order, colours, aliases), as a daemon config would send them. */
@@ -57,6 +59,23 @@ const STATIONS: StationSeed[] = [
   { id: 'ws-cy', title: 'MOBILE', group: 'IN_PROGRESS', state: 'me', text: 'You: merge #214 when you are ready', status: 'idle', idle: 2200, tool: 'Bash', subagents: 0, prs: [214, 207, 142], tokens: 1_430_000, preview: '#214 is green with the review bot approved at head. Ready for you to merge.' },
   { id: 'ws-sh', title: 'Team invites', group: 'IN_PROGRESS', state: 'me', text: 'You: run the invite cleanup script on production', status: 'idle', idle: 3100, tool: 'Bash', subagents: 0, prs: [386], tokens: 980_000, preview: 'Cleanup step 2 of 3 is ready. Run it in the production shell and send me the output.' },
   { id: 'ws-sp', title: 'Support inbox', group: 'IN_PROGRESS', state: 'working', text: 'Building handoff intake; next: tests', status: 'active', idle: 4, tool: 'Edit', subagents: 1, prs: [356], tokens: 1_120_000, preview: 'Intake form saves; wiring the handoff job next.' },
+  { id: 'ws-rl', title: 'Rate limiter', group: 'IN_PROGRESS', state: 'working', text: 'Token bucket for the public API on #411', status: 'active', idle: 5, tool: 'exec', subagents: 0, prs: [411], tokens: 870_000, preview: 'Bucket refills per tenant now; adding the burst tests.', harness: 'codex' },
+  {
+    id: 'ws-rx', title: 'Search reindex', group: 'IN_PROGRESS', state: 'me', text: 'You: approve the reindex dry run for #413', status: 'idle', idle: 420, tool: 'shell', subagents: 0, prs: [413], tokens: 410_000, harness: 'codex',
+    preview: 'The batch job is ready. I need to run the dry run against the staging index.',
+    question: {
+      question: 'Would you like to run the following command? $ make reindex-dry-run TENANT=demo',
+      header: 'Approval',
+      kind: 'approval',
+      source: 'screen',
+      multi_select: false,
+      options: [
+        { label: 'Yes, proceed', description: 'Reason: the dry run reads the staging search index.', key: 'y' },
+        { label: "Yes, and don't ask again for this command", key: 'a' },
+        { label: 'No, and tell Codex what to do differently', key: 'Escape' },
+      ],
+    },
+  },
   { id: 'ws-bo', title: 'DOCS', group: 'IN_PROGRESS', state: 'waiting', text: 'Jordan confirming the upgrade guide wording', status: 'idle', idle: 4100, tool: 'Read', subagents: 0, prs: [344], tokens: 520_000, preview: 'Sent Jordan the two wording options; waiting on their pick.' },
   { id: 'ws-db', title: 'Design tokens', group: 'ON_HOLD', state: 'waiting', text: 'Parked until the v2 color tokens ship', status: 'idle', idle: 30000, tool: 'Read', subagents: 0, prs: [327], tokens: 90_000, preview: 'Parked.' },
   { id: 'ws-ap', title: 'Search API v2', group: 'IN_PROGRESS', state: 'staging', text: 'Testers have #366 on preview', status: 'idle', idle: 1300, tool: 'Bash', subagents: 0, prs: [366], tokens: 760_000, preview: 'Preview deployed. Typeahead parity checks pass.' },
@@ -87,6 +106,8 @@ const WPS: WpSeed[] = [
   { id: 'fix:invite-cleanup', pr: null, kind: 'data_fix', title: 'Pending invite cleanup (production script)', station: 'ws-sh', ledger: { area: 'auth', state: 'staging', ball: 'me' } },
   { pr: 356, title: 'feat(support): handoff intake form', stage: 'build', ci: 'none', reviewer: 'none', draft: true, station: 'ws-sp', additions: 260, deletions: 10 },
   { id: 'issue:api-docs-copy-button', pr: null, kind: 'issue', title: 'Priya: API docs copy button drops the last line', station: 'ws-bo', board_stage: 'In progress', ledger: { area: 'docs', state: 'triage' } },
+  { pr: 411, title: 'feat(infra): token bucket rate limiter for the public API', stage: 'build', ci: 'pending', reviewer: 'none', draft: true, station: 'ws-rl', additions: 380, deletions: 40 },
+  { pr: 413, title: 'fix(search): reindex job batches by tenant', stage: 'build', ci: 'success', reviewer: 'none', draft: true, station: 'ws-rx', additions: 210, deletions: 65 },
   { pr: 344, title: 'feat(docs): upgrade guide wording options', stage: 'reviewer', ci: 'success', reviewer: 'approved', reviewer_at_head: true, draft: false, station: 'ws-bo', ledger: { area: 'docs', ball: 'Jordan' }, mergeable: 'MERGEABLE', additions: 80, deletions: 20 },
   { pr: 327, title: 'feat(mobile): v2 color tokens for cards', stage: 'build', ci: 'success', reviewer: 'none', draft: true, station: 'ws-db', additions: 700, deletions: 50 },
   { pr: 366, title: 'fix(search): v2 API parity for typeahead', stage: 'preview', ci: 'success', reviewer: 'pending', draft: false, labels: ['preview'], station: 'ws-ap', additions: 330, deletions: 120 },
@@ -169,12 +190,13 @@ export const MOCK_COMMANDS = [
   },
 ];
 
-function mockTelemetry(i: number, tokens: number, status: string, now: number) {
+function mockTelemetry(i: number, tokens: number, status: string, now: number, harness = 'claude') {
   const ctx = [38, 72, 88, 15, 54, 61, 27, 93, 44, 66, 12, 80, 49, 33, 70, 22, 57][i % 17];
+  const codex = harness === 'codex';
   return {
-    model: i % 4 === 3 ? 'claude-sonnet-5-5' : 'claude-opus-5-5',
-    account_label: i % 3 === 0 ? 'work' : 'personal',
-    account_email_masked: i % 3 === 0 ? 'al…@example.test' : 'sa…@example.test',
+    model: codex ? 'gpt-5.5-codex' : i % 4 === 3 ? 'claude-sonnet-5-5' : 'claude-opus-5-5',
+    account_label: codex ? 'codex' : i % 3 === 0 ? 'work' : 'personal',
+    account_email_masked: codex ? null : i % 3 === 0 ? 'al…@example.test' : 'sa…@example.test',
     context_pct: ctx,
     context_tokens: Math.round(ctx * 4000),
     context_window: 400000,
@@ -206,7 +228,8 @@ export function makeMockSnapshot(nowMs = Date.now()): Raw {
     cwd: `~/worktrees/widgets/${s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
     ports: s.status === 'active' ? [3000 + i * 3, 3041 + i] : [],
     session_id: `sess-${s.id}`,
-    account: i % 3 === 0 ? 'work' : 'personal',
+    account: s.harness === 'codex' ? 'codex' : i % 3 === 0 ? 'work' : 'personal',
+    harness: s.harness ?? 'claude',
     note: s.state ? { state: s.state, text: s.text, ts: now - s.idle - 120 } : null,
     activity: { last_at: now - s.idle, last_tool: s.tool, subagents: s.subagents, idle_seconds: s.idle, status: s.status },
     pr_numbers: s.prs,
@@ -217,8 +240,8 @@ export function makeMockSnapshot(nowMs = Date.now()): Raw {
     pending_question: s.question ?? null,
     last_assistant_preview: s.preview,
     issue_events: s.id === 'ws-bo' ? { 'api-docs-copy-button': [{ type: 'user_replied', ts: now - 900 }] } : {},
-    telemetry: mockTelemetry(i, s.tokens, s.status, now),
-    context_pct: mockTelemetry(i, s.tokens, s.status, now).context_pct,
+    telemetry: mockTelemetry(i, s.tokens, s.status, now, s.harness),
+    context_pct: mockTelemetry(i, s.tokens, s.status, now, s.harness).context_pct,
     quota_pct: i % 3 === 0 ? 41 : 63,
     skill_names: MOCK_SKILLS.map((k) => k.name),
   }));
@@ -269,6 +292,7 @@ export function makeMockSnapshot(nowMs = Date.now()): Raw {
       product: 'Shufler',
       terminal: 'cmux',
       agent: 'claude-code',
+      agents: ['claude', 'codex'],
       scm: 'github',
       reviewer: true,
       reviewer_retrigger: true,

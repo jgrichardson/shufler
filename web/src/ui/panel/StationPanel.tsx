@@ -13,6 +13,7 @@ import { SkillButtons } from './SkillButtons';
 import { TelemetryStrip } from './Telemetry';
 import { DomainMove, domainTarget } from './DomainMove';
 import { ContextSection } from '../library/ContextSection';
+import { harnessLabel } from '../../lib/library';
 import { tone } from '../tone';
 import { stationCommands } from '../commands';
 import { InlineCommand } from '../CommandForm';
@@ -35,10 +36,10 @@ export function StationOverview({ s }: { s: Station }) {
         </div>
         <h2>{s.title}</h2>
         {s.anchor_for && <div className="muted">group anchor for {s.anchor_for}</div>}
-        {isClosed(s) && <div className="muted">No Claude running in this workspace.</div>}
+        {isClosed(s) && <div className="muted">No {harnessLabel(s.harness)} running in this workspace.</div>}
         {sessionCount(s.claude) >= 2 && (
           <div className="session-list">
-            <span className="muted">{sessionCount(s.claude)} Claude sessions:</span>
+            <span className="muted">{sessionCount(s.claude)} {harnessLabel(s.harness)} sessions:</span>
             {s.claude.sessions.map((id, i) => (
               <span key={id} className="mono session-id" title={id}>
                 {id.slice(0, 8)}

@@ -1,6 +1,8 @@
 """On-demand conversation view of one session's transcript (contract: Conversation panel).
 
-Message text is returned only through this module's endpoints, never in the broadcast snapshot.
+Message text is returned only through this module's endpoints, never in the broadcast snapshot. Claude Code
+transcripts (`<session>.jsonl`) are parsed here; Codex rollouts (`rollout-*.jsonl`, `rollout-*.json`) by
+adapters/agent/codex.py into the same turn shape.
 """
 
 from __future__ import annotations
@@ -72,6 +74,17 @@ def _read_tail(path: Path, nbytes: int) -> tuple[list[str], bool]:
     return data.decode("utf-8", errors="replace").splitlines(), start == 0
 
 
+def is_codex(path: str | Path) -> bool:
+    return Path(path).name.startswith("rollout-")
+
+
+def _parser(path: str | Path):
+    if is_codex(path):
+        from .adapters.agent.codex import parse_turns as codex_turns
+        return lambda lines, results=False: codex_turns(lines, results=results, result_cap=RESULT_CAP)
+    return parse_turns
+
+
 def parse_turns(lines: list[str], *, results: bool = False) -> list[dict]:
     turns: list[dict] = []
     by_tool_id: dict[str, dict] = {}
@@ -130,11 +143,14 @@ def parse_turns(lines: list[str], *, results: bool = False) -> list[dict]:
 def read_conversation(path: str | Path, n: int = 20, before: float | None = None,
                       results: bool = False, pr: int | None = None) -> dict:
     path = Path(path)
+    parse = _parser(path)
     n = max(1, min(int(n), 200))
     nbytes = TAIL_START
     while True:
         lines, at_start = _read_tail(path, nbytes)
-        turns = parse_turns(lines, results=results)
+        if path.suffix == ".json":  # a legacy Codex session is one JSON document: read it whole
+            lines, at_start = [path.read_text(errors="replace").replace("\n", " ")], True
+        turns = parse(lines, results=results)
         if before is not None:
             turns = [t for t in turns if (t["ts"] or 0) < before]
         filtered = turns
@@ -172,10 +188,12 @@ def search_history(path: str | Path, q: str, limit: int = SEARCH_MAX) -> dict:
     if not needle:
         return {"results": [], "truncated": False}
     results = []
+    codex = is_codex(path)
+    parse = _parser(path)
     for line in _all_lines(Path(path)):
-        if needle not in line.lower() or not _TURN_LINE_RE.search(line):
+        if needle not in line.lower() or not (codex or _TURN_LINE_RE.search(line)):
             continue
-        for turn in parse_turns([line]):
+        for turn in parse([line]):
             low = turn["text"].lower()
             i = low.find(needle)
             if i < 0:
@@ -191,6 +209,9 @@ def search_history(path: str | Path, q: str, limit: int = SEARCH_MAX) -> dict:
 
 def history_summary(path: str | Path, session_id: str | None = None) -> dict:
     """Whole-file pass: start, prompt count, PR links, skills, files touched, compactions, prior sessions."""
+    if is_codex(path):
+        from .adapters.agent.codex import history_records
+        return history_records(_all_lines(Path(path)))
     started = None
     turns = 0
     pr_links: list[dict] = []

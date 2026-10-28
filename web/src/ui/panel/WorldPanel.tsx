@@ -22,6 +22,8 @@ function moveTarget(m: YourMove) {
 function MoveRow({ m }: { m: YourMove }) {
   const age = Date.now() / 1000 - m.since;
   const { item, station } = moveTarget(m);
+  // a harness approval (Codex) reads as Approval, not Decision
+  const qkind = useWorld((s) => (m.station_id ? s.snapshot?.stations.find((x) => x.id === m.station_id)?.pending_question?.kind : null));
   const open = () => {
     if (m.kind === 'question' || m.kind === 'reply') {
       if (station) dispatch({ type: 'select', selection: station, tab: 'conversation' });
@@ -37,7 +39,7 @@ function MoveRow({ m }: { m: YourMove }) {
   else if (station) primary = { label: 'Focus', run: () => requestAction('focus', { station_id: station.id }) };
   return (
     <div className={`move-row sev-${m.severity}`} onClick={open} role="button" tabIndex={0}>
-      <span className={`move-tag kind-${m.kind}`}>{MOVE_TAG[m.kind]}</span>
+      <span className={`move-tag kind-${m.kind}`}>{m.kind === 'question' && qkind === 'approval' ? 'Approval' : MOVE_TAG[m.kind]}</span>
       <span className="move-text">
         {m.pr != null && <span className="mono">#{m.pr} </span>}
         {m.text}

@@ -224,6 +224,7 @@ class SessionStats:
         except OSError:
             size = None
         return {
+            "harness": "claude",
             "model": self.model, "context_tokens": self.context_tokens,
             "tokens_in_today": self.tokens_in_by_day.get(day, 0), "tokens_out_today": self.tokens_out_by_day.get(day, 0),
             "cost_usd_session": self.cost_usd, "session_started_at": self.started_at or self.first_ts,
@@ -303,3 +304,26 @@ class TranscriptIndex:
             while chunk := fh.read(4 * 1024 * 1024):
                 st.feed_bytes(chunk)
             st.offset = fh.tell()
+
+
+class MultiIndex:
+    """Several harnesses' transcript indexes behind the TranscriptIndex interface. Every summary carries its
+    `harness`; session ids are UUIDs, so ids from different harnesses do not collide."""
+
+    def __init__(self, indexes: dict[str, object]):
+        self.indexes = indexes
+
+    @property
+    def sessions(self) -> dict:
+        out: dict = {}
+        for idx in self.indexes.values():
+            out.update(getattr(idx, "sessions", {}) or {})
+        return out
+
+    def scan(self, wanted: set[str] | None = None, now: float | None = None,
+             prefixes: set[str] | None = None) -> dict[str, dict]:
+        out: dict[str, dict] = {}
+        for harness, idx in self.indexes.items():
+            for sid, summary in idx.scan(wanted, now=now, prefixes=prefixes).items():
+                out[sid] = {**summary, "harness": summary.get("harness") or harness}
+        return out

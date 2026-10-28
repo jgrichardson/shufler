@@ -1,0 +1,11 @@
+71001 ttys030     01:10:00 node /Users/demo/.nvm/versions/node/v22.0.0/bin/codex
+71002 ttys030     01:09:59 /Users/demo/.nvm/versions/node/v22.0.0/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex/codex
+71010 ttys031        12:00 /opt/homebrew/bin/codex resume dddd4444-0000-0000-0000-000000000000
+71020 ttys032        05:00 codex -m gpt-5.5-codex -C /Users/demo/gadgets
+71030 ttys033        02:00 codex -c model_reasoning_effort=high "fix the flaky test"
+71040 ??             00:30 codex exec --json summarise the diff
+71041 ??             00:30 /Users/demo/.local/bin/codex mcp-server
+71042 ??             01:30 /Applications/Codex.app/Contents/Resources/codex app-server --listen stdio
+71043 ttys034        00:10 node /Users/demo/.nvm/versions/node/v22.0.0/bin/codex
+71050 ttys005     08:29:00 claude --dangerously-skip-permissions --resume ffff6666-0000-0000-0000-000000000000 --name CONTROL
+71060 ttys040        00:40 /usr/bin/vim codex.md

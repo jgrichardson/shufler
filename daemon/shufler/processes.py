@@ -1,10 +1,12 @@
-"""Running Claude Code processes (CONTRACT.md "Morning review round 9").
+"""Running agent processes: Claude Code, Codex and any other harness (CONTRACT.md "Morning review round 9").
 
-`ps` lists them every 10 s. For each new process one `lsof` call reads its cwd and one `ps -E` call reads the
-terminal's workspace id from its environment (CMUX_WORKSPACE_ID, ITERM_SESSION_ID or TMUX_PANE); both are cached
-per (pid, start time), so a steady fleet costs one `ps` per tick. The tty from `ps` is matched to the terminal's
-workspace ttys in snapshot.py. Excluded: the Chrome native-messaging host and headless `claude -p` / `--print` runs
-(Shufler's own)."""
+`ps` lists them every 10 s; each enabled harness says which command lines are its interactive sessions
+(`match_process`, adapters/agent) and every match carries its `harness`. For each new process one `lsof` call reads
+its cwd and one `ps -E` call reads the terminal's workspace id from its environment (CMUX_WORKSPACE_ID,
+ITERM_SESSION_ID or TMUX_PANE); both are cached per (pid, start time), so a steady fleet costs one `ps` per tick.
+The tty from `ps` is matched to the terminal's workspace ttys in snapshot.py. Excluded: the Chrome native-messaging
+host, headless `claude -p` / `--print` runs (Shufler's own) and non-interactive `codex exec`, `codex mcp-server`, ...
+"""
 
 from __future__ import annotations
 
@@ -45,8 +47,30 @@ def _session_arg(tokens: list[str]) -> str | None:
     return None
 
 
-def parse_ps(text: str) -> list[dict]:
-    """`ps -axww -o pid=,tty=,etime=,command=` → interactive Claude Code processes."""
+def match_claude(tokens: list[str]) -> dict | None:
+    """An interactive `claude` command line → {session_id, name}; None for anything else (headless `-p` runs and
+    the Chrome native-messaging host included)."""
+    if not tokens or os.path.basename(tokens[0]) != "claude":
+        return None
+    if any(flag in tokens for flag in EXCLUDE_FLAGS):
+        return None
+    name = tokens[tokens.index("--name") + 1] if "--name" in tokens[:-1] else None
+    return {"session_id": _session_arg(tokens), "name": name}
+
+
+def default_matchers() -> dict:
+    """{harness: match_process} for the enabled harnesses (adapters/agent)."""
+    from .adapters import agent
+    return {h: cls.match_process for h, cls in agent.registered().items() if h in agent.enabled()}
+
+
+def parse_ps(text: str, matchers: dict | None = None) -> list[dict]:
+    """`ps -axww -o pid=,tty=,etime=,command=` → interactive agent processes, each with its `harness`.
+
+    A harness whose launcher starts a second process on the same tty (Codex's `node …/codex` starting the native
+    binary) marks the outer one `launcher`; only the inner one is kept when both are listed."""
+    if matchers is None:
+        matchers = {"claude": match_claude, **{h: m for h, m in default_matchers().items() if h != "claude"}}
     out = []
     for line in text.splitlines():
         parts = line.split(None, 3)
@@ -54,14 +78,21 @@ def parse_ps(text: str) -> list[dict]:
             continue
         pid, tty, etime, command = parts
         tokens = command.split()
-        if not tokens or os.path.basename(tokens[0]) != "claude":
-            continue
-        if any(flag in tokens for flag in EXCLUDE_FLAGS):
-            continue
-        name = tokens[tokens.index("--name") + 1] if "--name" in tokens[:-1] else None
-        out.append({"pid": int(pid), "tty": None if tty in ("??", "-") else tty, "etime_s": parse_etime(etime),
-                    "session_id": _session_arg(tokens), "name": name})
-    return out
+        for harness, match in matchers.items():
+            m = match(tokens)
+            if m is None:
+                continue
+            p = {"pid": int(pid), "tty": None if tty in ("??", "-") else tty, "etime_s": parse_etime(etime),
+                 "session_id": m.get("session_id"), "name": m.get("name"), "harness": harness}
+            if m.get("cwd_arg"):
+                p["cwd_arg"] = m["cwd_arg"]
+            if m.get("launcher"):
+                p["launcher"] = True
+            out.append(p)
+            break
+    inner = {(p["harness"], p["tty"]) for p in out if not p.get("launcher") and p["tty"]}
+    return [{k: v for k, v in p.items() if k != "launcher"} for p in out
+            if not (p.get("launcher") and (p["harness"], p["tty"]) in inner)]
 
 
 def parse_lsof_cwd(text: str) -> dict[int, str]:
@@ -104,7 +135,8 @@ def parse_env_workspace(text: str) -> dict[int, str]:
 
 
 class ProcessScanner:
-    def __init__(self):
+    def __init__(self, matchers: dict | None = None):
+        self.matchers = matchers
         self.meta: dict[tuple[int, int], dict] = {}  # (pid, start bucket) → {cwd, workspace_id}
 
     def __call__(self) -> list[dict]:
@@ -112,7 +144,7 @@ class ProcessScanner:
         r = runner.run(["ps", "-axww", "-o", "pid=,tty=,etime=,command="], timeout=10)
         if not r.ok:
             raise RuntimeError(f"ps rc={r.rc} {r.stderr.strip()[:200]}")
-        procs = parse_ps(r.stdout)
+        procs = parse_ps(r.stdout, self.matchers)
         for p in procs:
             p["since"] = round(now - p["etime_s"]) if p["etime_s"] is not None else None
             p["key"] = (p["pid"], (p["since"] or 0) // 60)
@@ -126,8 +158,13 @@ class ProcessScanner:
             for p in procs:
                 if p["pid"] in new:
                     e = envs.get(p["pid"]) or {}
-                    self.meta[p["key"]] = {"cwd": cwds.get(p["pid"]), "workspace_id": e.get("workspace_id"),
+                    cwd = cwds.get(p["pid"])
+                    if p.get("cwd_arg"):  # `codex -C <dir>`: the session works there, not in the launch dir
+                        arg = os.path.expanduser(p["cwd_arg"])
+                        cwd = os.path.normpath(os.path.join(cwd, arg)) if cwd and not os.path.isabs(arg) else arg
+                    self.meta[p["key"]] = {"cwd": cwd, "workspace_id": e.get("workspace_id"),
                                            "ledger_area": e.get("ledger_area")}
         live = {p["key"] for p in procs}
         self.meta = {k: v for k, v in self.meta.items() if k in live}
-        return [{**{k: v for k, v in p.items() if k != "key"}, **self.meta.get(p["key"], {})} for p in procs]
+        return [{**{k: v for k, v in p.items() if k not in ("key", "cwd_arg")}, **self.meta.get(p["key"], {})}
+                for p in procs]

@@ -6,6 +6,9 @@ os.environ["SHUFLER_CONFIG"] = str(Path(__file__).parent / "fixtures" / "config.
 os.environ["SHUFLER_HISTORY"] = "0"  # tests build their own HistoryStore under tmp_path
 os.environ.setdefault("SHUFLER_CACHE_DIR", "/tmp/shufler-test-cache")
 os.environ.setdefault("SHUFLER_LIBRARY", "/tmp/shufler-test-cache/library.json")  # tests swap in tmp_path stores
+# Both harnesses on whatever is installed here; Codex reads the fixture rollouts, never ~/.codex.
+os.environ.setdefault("SHUFLER_AGENTS", "claude,codex")
+os.environ["SHUFLER_CODEX_HOME"] = str(Path(__file__).parent / "fixtures" / "codex")
 
 import pytest
 

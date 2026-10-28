@@ -8,10 +8,11 @@ import { areaLabel } from '../lib/domains';
 import { useTerminalStation } from './followCmux';
 import { sessionCount } from '../lib/derive';
 import { useLibDrag } from './library/drag';
+import { harnessLabel } from '../lib/library';
 
 /**
  * The pinned 2D row-header column: one header per cmux workspace row (title as cmux shows it, domain
- * colour swatch, an area-ledger "L" chip, items and needs-you counts), Unowned last. No group dividers (round 10).
+ * colour swatch, a harness badge on non-Claude rows, an area-ledger "L" chip, items and needs-you counts), Unowned last. No group dividers (round 10).
  */
 export function RowHeaders() {
   const layout = useLayout();
@@ -38,6 +39,8 @@ export function RowHeaders() {
   if (!layout || !snapshot) return null;
   // round 12: the ×N chip moved here from the building plate, which is gone
   const sessions = new Map(snapshot.stations.map((s) => [s.id, sessionCount(s.claude)]));
+  // Claude Code is the default harness, so only other harnesses get a badge
+  const harness = new Map(snapshot.stations.filter((s) => s.harness && s.harness !== 'claude').map((s) => [s.id, s.harness!]));
   const ref = (id: string) => (el: HTMLElement | null) => {
     if (el) rowHeads.items.set(id, el);
     else rowHeads.items.delete(id);
@@ -54,13 +57,18 @@ export function RowHeaders() {
           <>
             <span className="row-swatch" style={{ background: l.domain.color }} title={l.domain.label} />
             <span className="row-title">{l.title}</span>
+            {harness.has(l.stationId ?? '') && (
+              <span className="harness-chip" title={`${harnessLabel(harness.get(l.stationId!))} session`}>
+                {harness.get(l.stationId!)}
+              </span>
+            )}
             {terminalStation && l.stationId === terminalStation && (
               <span className="terminal-chip" title="Your terminal is on this session">
                 &gt;_
               </span>
             )}
             {(sessions.get(l.stationId ?? '') ?? 0) >= 2 && (
-              <span className="multi-chip" title={`${sessions.get(l.stationId ?? '')} Claude sessions running here`}>
+              <span className="multi-chip" title={`${sessions.get(l.stationId ?? '')} ${harnessLabel(harness.get(l.stationId ?? ''))} sessions running here`}>
                 ×{sessions.get(l.stationId ?? '')}
               </span>
             )}

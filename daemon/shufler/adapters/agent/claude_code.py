@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from pathlib import Path
+
+from ...processes import match_claude
 
 
 def mask_email(email: str | None) -> str | None:
@@ -85,12 +88,38 @@ class ClaudeCodeAdapter:
     optional statusline usage cache per account."""
 
     name = "claude-code"
+    harness = "claude"
+    label = "Claude Code"
+    CONFIG_DEFAULTS: dict = {}
+    probe_screen = False  # AskUserQuestion is in the transcript; nothing to read on screen
 
     def __init__(self, transcript_roots: dict[str, Path], accounts: dict[str, dict],
                  usage_cache: dict[str, Path] | None = None):
         self.transcript_roots = transcript_roots
         self.account_cfg = accounts
         self.usage_cache = usage_cache or {}
+
+    @classmethod
+    def from_config(cls, cfg: dict | None = None) -> "ClaudeCodeAdapter":
+        from ... import config
+        return cls(config.TRANSCRIPT_ROOTS, config.ACCOUNTS, config.USAGE_CACHE)
+
+    @classmethod
+    def detect(cls, cfg: dict | None = None):
+        from ... import config
+        from ..terminal.base import Detection
+        b = shutil.which("claude")
+        roots = [r for r in config.TRANSCRIPT_ROOTS.values() if Path(r).is_dir()]
+        detail = ", ".join((f"bin {b}" if b else "claude not on PATH",
+                            f"{len(roots)} of {len(config.TRANSCRIPT_ROOTS)} account transcript dirs found"))
+        return Detection(bool(b) or bool(roots), False, detail)
+
+    match_process = staticmethod(match_claude)
+
+    @staticmethod
+    def answer_keys(question: dict | None, text: str) -> None:
+        """Claude Code questions are answered by typing the option label and pressing Return (actions.py)."""
+        return None
 
     @property
     def config_dirs(self) -> list[Path]:

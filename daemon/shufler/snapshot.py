@@ -199,6 +199,7 @@ def build_snapshot(data: dict[str, Any], health: dict[str, dict], now: float) ->
     # Running Claude processes → workspaces: the workspace id from the process env (CMUX_WORKSPACE_ID,
     # ITERM_SESSION_ID, TMUX_PANE), else the process's tty when exactly one workspace owns it, else the joined
     # session id, else a cwd that belongs to exactly one workspace. `processes` is None when that source is off.
+    screens = data.get("screens") or {}
     processes = data.get("processes")
     proc_by_ws: dict[str, list[dict]] = {}
     if processes is not None:
@@ -214,8 +215,11 @@ def build_snapshot(data: dict[str, Any], health: dict[str, dict], now: float) ->
         used = {p["session_id"] for p in procs if p.get("session_id")}
         for p in procs:
             if not p.get("session_id") and p.get("cwd"):
+                # the newest unclaimed transcript of the same harness in that cwd (a Claude process never takes a
+                # Codex transcript, and the other way round)
                 fresh = sorted(((x.get("last_at") or 0, sid) for sid, x in transcripts.items()
                                 if x.get("cwd") == p["cwd"] and sid not in used
+                                and (x.get("harness") or "claude") == (p.get("harness") or "claude")
                                 and now - (x.get("last_at") or 0) <= config.PROCESS_SESSION_RECENT_S), reverse=True)
                 if fresh:
                     p["session_id"] = fresh[0][1]
@@ -243,6 +247,10 @@ def build_snapshot(data: dict[str, Any], health: dict[str, dict], now: float) ->
         titles = {w.get("id"): _TITLE_SID_RE.sub("", w.get("custom_title") or w.get("title") or "") for w in workspaces}
         for wid, ps in proc_by_ws.items():
             sid, src = joins[wid]
+            running = {p.get("harness") or "claude" for p in ps}
+            joined = (transcripts.get(sid) or {}).get("harness") if sid else None
+            if joined and joined not in running and src != "title":
+                sid, src = joins[wid] = (None, "none")  # only another harness runs here now: that join is stale
             live = [p for p in ps if p.get("session_id")]
             named = [p for p in live if p.get("name") and _norm(p["name"]) == _norm(titles.get(wid))]
             if named and src != "title" and sid != named[0]["session_id"]:
@@ -311,13 +319,19 @@ def build_snapshot(data: dict[str, Any], health: dict[str, dict], now: float) ->
             "issue_events": {s: issues[s].get("events") or [] for s in slugs},
             "context_pct": None, "quota_pct": None,
             "telemetry": telemetry(t, (data.get("accounts") or {}).get(t.get("account")) if t else None, now),
+            "harness": (t.get("harness") or "claude") if t else None,
         })
+        screen_q = screens.get(w.get("id"))
+        if screen_q:  # what the session's screen shows (a Codex approval) beats what its transcript implies
+            stations[-1]["pending_question"] = {k: v for k, v in screen_q.items() if k != "session_id"}
         if processes is None:
             stations[-1]["claude"] = None
         else:
             ps = proc_by_ws.get(w.get("id"), [])
             ordered = sorted(ps, key=lambda p: (p.get("session_id") != session_id, p.get("etime_s") or 0))
             first = ordered[0] if ordered else None
+            if first:
+                stations[-1]["harness"] = first.get("harness") or "claude"
             stations[-1]["claude"] = {
                 "running": bool(ps), "pid": first and first["pid"], "since": first and first.get("since"),
                 "sessions": list(dict.fromkeys(p["session_id"] for p in ordered if p.get("session_id"))),
@@ -493,9 +507,10 @@ def telemetry(t: dict | None, acct: dict | None, now: float) -> dict:
     """Statusline-equivalent figures; null whenever the source does not say."""
     t = t or {}
     acct = acct or {}
-    window = acct.get("context_window")
+    # Codex reports its context window and plan quota per session in the transcript, not per account
+    window = acct.get("context_window") or t.get("context_window")
     ctx = t.get("context_tokens")
-    quota = acct.get("quota") or {}
+    quota = acct.get("quota") or t.get("quota") or {}
     used = quota.get("five_hour_pct")
     started = t.get("session_started_at")
     return {

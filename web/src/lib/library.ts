@@ -139,8 +139,15 @@ export function computeOwed(data: Pick<LibraryData, 'items' | 'grants' | 'delive
   return out;
 }
 
-export function harnessFor(st: Pick<StationLike, 'title'>): 'claude-code' | 'codex' {
+/** Library format for a session: the snapshot's `harness` first, else a "codex" title, else Claude Code. */
+export function harnessFor(st: { title?: string | null; harness?: string | null }): 'claude-code' | 'codex' {
+  if (st.harness) return st.harness === 'codex' ? 'codex' : 'claude-code';
   return /codex/i.test(st.title ?? '') ? 'codex' : 'claude-code';
+}
+
+/** Display name for a station's harness; old snapshots without the field read as Claude Code. */
+export function harnessLabel(harness: string | null | undefined): string {
+  return harness === 'codex' ? 'Codex' : 'Claude Code';
 }
 
 const norm = (p: string) => p.replace(/\/+$/, '') || '/';
@@ -151,9 +158,11 @@ function prompt(parts: string[], note?: string | null): string {
   return `Context from the library: ${parts.join('; ')}.${n ? ` ${n}.` : ''} Read these before continuing.`;
 }
 
-/** One adapter per harness: Claude Code gets `/add-dir` for outside folders then @-mentions; others get plain paths. */
+/** One adapter per harness: Claude Code gets `/add-dir` for outside folders then @-mentions; Codex and others get plain paths. */
 export function composeMessage(harness: string, items: Pick<LibraryItem, 'name' | 'paths' | 'status'>[], cwd: string | null | undefined, note?: string | null): string[] {
   const kind = (it: Pick<LibraryItem, 'status'>, p: string) => it.status?.find((s) => s.path === p)?.kind ?? null;
+  // Codex: absolute paths, no `@` (it opens the file-search popup) and no `/add-dir`; spaced paths are quoted.
+  if (harness === 'codex') return [prompt(items.map((it) => `${it.name}: ${it.paths.map((p) => (/\s/.test(p) ? `"${p}"` : p)).join(' ')}`), note)];
   if (harness !== 'claude-code') return [prompt(items.map((it) => `${it.name}: ${it.paths.join(' ')}`), note)];
   let dirs = [...new Set(items.flatMap((it) => it.paths.filter((p) => kind(it, p) === 'dir' && !inside(p, cwd))))];
   dirs = dirs.filter((d) => !dirs.some((o) => o !== d && inside(d, o)));
