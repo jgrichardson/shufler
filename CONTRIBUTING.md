@@ -15,6 +15,17 @@ cd web && npx tsc --noEmit && npx vitest run
 
 `bin/shufler dev` runs the daemon with reload plus the Vite dev server.
 
+## Packaging
+
+The daemon is a Python package (`daemon/pyproject.toml`, hatchling). A wheel built from a checkout picks up `web/dist` as `shufler/web` and the example config as `shufler/config.example.toml` (see `daemon/hatch_build.py`), so build the web app first. `daemon/README.md` is the short package description and `daemon/LICENSE` is a copy of `LICENSE`; keep them in step.
+
+```bash
+packaging/release.sh             # web build, sdist, wheel, smoke test, filled-in Homebrew formula, in dist/
+packaging/smoke-test.sh dist/shufler-*.whl 4781   # install a wheel in a clean venv and run it on port 4781
+```
+
+`release.sh` prints the publishing steps (GitHub release, PyPI, the tap) and does none of them.
+
 ## Add an adapter
 
 Adapters live in `daemon/shufler/adapters/<kind>/`. Each kind has a Protocol in its `__init__.py`: terminal, agent, scm, review or tracker. Terminals have a guide in [`docs/TERMINALS.md`](docs/TERMINALS.md) and agent harnesses (Claude Code and Codex today) in [`docs/AGENTS.md`](docs/AGENTS.md); both can also ship as a separate package through an entry point (`shufler.terminals`, `shufler.agents`).
