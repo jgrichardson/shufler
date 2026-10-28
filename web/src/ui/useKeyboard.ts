@@ -8,6 +8,7 @@ import { requestAction } from './requestAction';
 import { usePalette } from './Palette';
 import { useSettings } from './SkillsSettings';
 import { useLayers } from './layers';
+import { toggleHorizon } from '../scene/horizon';
 
 function typing(el: EventTarget | null): boolean {
   const t = el as HTMLElement | null;
@@ -115,6 +116,9 @@ export function useKeyboard(): string | null {
         case 'r':
         case 'R':
           return dispatch({ type: 'reset_view' });
+        case 'h':
+        case 'H':
+          return toggleHorizon();
         case 'n':
         case 'N': {
           const moves = snap?.your_move ?? [];

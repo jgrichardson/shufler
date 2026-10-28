@@ -714,6 +714,7 @@ body.space-pan .scene-canvas { cursor: grab; }
 .layer-btn:hover { color: var(--text); background: color-mix(in srgb, var(--overlay) 6%, transparent); }
 .layer-btn.on { color: var(--text); }
 .layer-btn.clean.on { background: color-mix(in srgb, var(--overlay) 14%, transparent); }
+.layer-btn.horizon.on { background: color-mix(in srgb, var(--overlay) 14%, transparent); }
 .layer-btn kbd { margin-left: 0; }
 .layer-tick { width: 9px; height: 9px; border-radius: 3px; border: 1.5px solid currentColor; opacity: .55; flex: none; }
 .layer-btn.on .layer-tick { background: var(--accent); border-color: var(--accent); opacity: 1; }
@@ -774,6 +775,10 @@ body[data-layout='pipeline'] .strip-cell { font-size: 14px; }
 .row-counts { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; font: 700 10.5px var(--mono); color: var(--faint, var(--faint)); padding-left: 4px; }
 .row-head.is-selected .row-counts { color: var(--ink-muted); }
 .row-needs { background: var(--me); color: #fff; border-radius: 5px; padding: 0 5px; min-width: 16px; text-align: center; }
+/* horizon camera: the far rows sit closer together on screen, so the headers slim down to stay level with them */
+body[data-camera='horizon'] .row-head { height: 16px; gap: 5px; padding: 0 5px 0 6px; border-radius: 5px; font-size: 10.5px; }
+body[data-camera='horizon'] .row-counts { font-size: 9.5px; }
+body[data-camera='horizon'] .row-swatch { width: 7px; height: 7px; border-radius: 2px; }
 
 .fleet-section { margin-top: 14px; }
 .fleet-extra { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; background: color-mix(in srgb, var(--overlay) 4%, transparent); border-radius: 8px; padding: 6px 9px; margin-top: 4px; word-break: break-all; }

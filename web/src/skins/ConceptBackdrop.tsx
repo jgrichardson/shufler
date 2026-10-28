@@ -94,8 +94,8 @@ function Field({
   );
 }
 
-/** One ring of low ridgeline around the board: a smooth sine-sum profile, fading to fog at its foot. */
-function Ridge({ radius, base, height, color, fog, seed }: { radius: number; base: number; height: number; color: string; fog: string; seed: number }) {
+/** One ring of low ridgeline around the board: a smooth sine-sum profile, fading to fog at its foot. Factory's horizon uses it too. */
+export function Ridge({ radius, base, height, color, fog, seed }: { radius: number; base: number; height: number; color: string; fog: string; seed: number }) {
   const geo = useMemo(() => {
     const n = 256;
     const pos: number[] = [];

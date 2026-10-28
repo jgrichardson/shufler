@@ -11,6 +11,8 @@ import { LIBRARY, SKY_Y, libraryPos, skywayEndX, type SceneLayout } from './layo
 import { podPositions } from './Pods';
 import { WAREHOUSE_WALL_H, bayGeometry, warehouseGeometry, warehouseRacks } from './warehouseLayout';
 import { classifyWheel, keyNav, zoomFactor } from '../lib/navInput';
+import { HORIZON_FOV, HORIZON_MAX_POLAR, HORIZON_PITCH_DEG, HORIZON_SECONDS, useHorizon } from './horizon';
+import { REDUCED_SECONDS, reducedMotion } from '../ui/motionPrefs';
 
 const IDLE_DRIFT_AFTER_MS = 14000;
 /** Near-orthographic lens so district columns stay vertical on screen (round 1, item 2). */
@@ -29,6 +31,8 @@ const UP = new THREE.Vector3(0, 1, 0);
 /** Overview: no yaw, pitched down 55° over the boulevard. */
 const PITCH = (55 * Math.PI) / 180;
 const HERO_DIR = new THREE.Vector3(0, Math.sin(PITCH), Math.cos(PITCH)).normalize();
+/** Lowest the default view may orbit, in radians from straight down; the horizon view lowers it. */
+const DEFAULT_MAX_POLAR = 1.3;
 const PIPE_DIR = new THREE.Vector3(0, 0.9, 0.44).normalize();
 const PIPE_DIST = 210 * FOV_K;
 
@@ -84,6 +88,73 @@ export function overviewFrame(
   return { target, pos: target.clone().add(HERO_DIR.clone().multiplyScalar(dist)) };
 }
 
+/** Top of the rows at the horizon (NDC y): the board fills the frame below it, the skyline the band above. */
+export const HORIZON_ROWS_TOP = 0.15;
+
+/**
+ * Horizon framing: the same front-on direction as the Overview, pitched down only HORIZON_PITCH_DEG through
+ * a wider lens. The camera slides across its own screen plane (which never moves the horizon line) and
+ * dollies until the board's floor fits the box between the bottom bars and HORIZON_ROWS_TOP, resting on its
+ * bottom edge, so the skyline gets the rest of the frame.
+ */
+export function horizonFrame(
+  layout: SceneLayout | null,
+  view: { width: number; height: number; panel: boolean } = { width: 1600, height: 1000, panel: true },
+): { pos: THREE.Vector3; target: THREE.Vector3 } {
+  const minZ = layout ? layout.bounds.minZ - 6 : -90;
+  const maxZ = layout ? layout.bounds.maxZ + 4 : 6;
+  const pitch = (HORIZON_PITCH_DEG * Math.PI) / 180;
+  const dir = new THREE.Vector3(0, Math.sin(pitch), Math.cos(pitch));
+  const up = new THREE.Vector3(0, Math.cos(pitch), -Math.sin(pitch));
+  const right = new THREE.Vector3(1, 0, 0);
+  const cam = new THREE.PerspectiveCamera(HORIZON_FOV, view.width / Math.max(1, view.height), 1, 4000);
+  cam.filmGauge = 35;
+  cam.filmOffset = view.panel ? (PANEL_FRACTION / 2) * cam.getFilmWidth() : 0;
+  cam.updateProjectionMatrix();
+  // the row floor only, from the first island to the last stage: landmarks and arches may rise into the
+  // skyline band (that is the point) and the warehouse may run off behind the panel
+  const minX = layout?.islands.length ? Math.min(...layout.islands.map((i) => i.center[0] - i.radius)) - 2 : WORLD_MIN_X;
+  const maxX = skywayEndX() + 6;
+  const corners: THREE.Vector3[] = [];
+  for (const x of [minX, maxX]) for (const z of [minZ, maxZ]) for (const y of [SKY_Y - 6, SKY_Y + 2]) corners.push(new THREE.Vector3(x, y, z));
+  const toNdcX = (px: number) => (px / view.width) * 2 - 1;
+  const toNdcY = (py: number) => 1 - (py / view.height) * 2;
+  const usableRight = view.width * (view.panel ? 1 - PANEL_FRACTION : 1) - FRAME_MARGIN.side;
+  const box = { l: toNdcX(FRAME_MARGIN.left), r: toNdcX(usableRight), t: HORIZON_ROWS_TOP, b: toNdcY(view.height - FRAME_MARGIN.bottom) };
+  const centre = new THREE.Vector3((minX + maxX) / 2, SKY_Y, (minZ + maxZ) / 2);
+  let dist = 260;
+  let sx = 0;
+  let sy = 0;
+  const pos = new THREE.Vector3();
+  const v = new THREE.Vector3();
+  for (let i = 0; i < 60; i++) {
+    pos.copy(centre).addScaledVector(dir, dist).addScaledVector(right, sx).addScaledVector(up, sy);
+    cam.position.copy(pos);
+    cam.lookAt(pos.clone().sub(dir));
+    cam.updateMatrixWorld();
+    let l = Infinity, r = -Infinity, t = -Infinity, b = Infinity;
+    for (const c of corners) {
+      v.copy(c).project(cam);
+      l = Math.min(l, v.x);
+      r = Math.max(r, v.x);
+      t = Math.max(t, v.y);
+      b = Math.min(b, v.y);
+    }
+    const scale = Math.max((r - l) / (box.r - box.l), (t - b) / (box.t - box.b));
+    // slide in the screen plane: centred across the box, resting on its bottom edge, so the rows sit low and
+    // the camera rises to see them at a steeper angle (world units per NDC unit at the board's centre)
+    const ndcPerUnitY = 1 / (dist * Math.tan((HORIZON_FOV * Math.PI) / 360));
+    const ndcPerUnitX = ndcPerUnitY / cam.aspect;
+    sx -= ((box.l + box.r) / 2 - (l + r) / 2) / ndcPerUnitX;
+    sy += (b - box.b) / ndcPerUnitY;
+    dist *= Math.pow(scale, 0.7);
+    if (Math.abs(scale - 1) < 0.005 && i > 8) break;
+  }
+  pos.copy(centre).addScaledVector(dir, dist).addScaledVector(right, sx).addScaledVector(up, sy);
+  // orbit about the point on the axis level with the board's centre, so a drag swings around the rows
+  return { pos, target: pos.clone().addScaledVector(dir, -dist) };
+}
+
 interface Flight {
   fromPos: THREE.Vector3;
   fromTarget: THREE.Vector3;
@@ -91,6 +162,9 @@ interface Flight {
   toTarget: THREE.Vector3;
   t: number;
   duration: number;
+  /** Lens at either end; only the horizon flights change it. */
+  fromFov: number;
+  toFov: number;
 }
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -109,13 +183,17 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
   const lastInteract = useRef(performance.now());
   const flySeq = useWorld((s) => s.flySeq);
   const presetSeq = useWorld((s) => s.presetSeq);
+  const horizonSeq = useHorizon((s) => s.seq);
+  const horizonOn = useHorizon((s) => s.on);
+  /** Where the camera was when the horizon view opened, so leaving it goes back there. */
+  const beforeHorizon = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null);
   const framed = useRef(false);
   const sway = useRef<{ base: THREE.Vector3; t: number } | null>(null);
 
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
     cam.filmGauge = 35;
-    cam.fov = FOV;
+    if (!flight.current) cam.fov = useHorizon.getState().on ? HORIZON_FOV : FOV;
     cam.filmOffset = size.width > 900 ? (PANEL_FRACTION / 2) * cam.getFilmWidth() : 0;
     cam.updateProjectionMatrix();
   }, [camera, size.width, size.height]);
@@ -134,7 +212,9 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
     if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1);
     fwd.normalize();
     // screen-down maps to toward the viewer; foreshortening stretches the vertical step
-    const off = right.multiplyScalar(dx * unitsPerPx).add(fwd.multiplyScalar((-dy * unitsPerPx) / Math.max(0.35, Math.sin(PITCH))));
+    // at the horizon the view is far flatter than the Overview's 55°, so measure the pitch actually in use
+    const sinPitch = useHorizon.getState().on ? new THREE.Vector3().subVectors(camera.position, c.target).normalize().y : Math.sin(PITCH);
+    const off = right.multiplyScalar(dx * unitsPerPx).add(fwd.multiplyScalar((-dy * unitsPerPx) / Math.max(0.35, sinPitch)));
     camera.position.add(off);
     c.target.add(off);
     flight.current = null;
@@ -233,10 +313,16 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
   }, [size.width, size.height]);
 
 
-  const fly = (toTarget: THREE.Vector3, toPos: THREE.Vector3, duration = 0.8) => {
+  const fly = (toTarget: THREE.Vector3, toPos: THREE.Vector3, duration = 0.8, toFov = FOV) => {
     const c = controls.current;
     if (!c) return;
-    flight.current = { fromPos: camera.position.clone(), fromTarget: c.target.clone(), toPos, toTarget, t: 0, duration };
+    // any other flight (a preset, Enter, N, R) takes the camera out of the horizon view, lens included
+    if (toFov !== HORIZON_FOV) {
+      useHorizon.getState().drop();
+      beforeHorizon.current = null;
+    }
+    const fromFov = (camera as THREE.PerspectiveCamera).fov;
+    flight.current = { fromPos: camera.position.clone(), fromTarget: c.target.clone(), toPos, toTarget, t: 0, duration, fromFov, toFov };
     lastInteract.current = performance.now();
   };
 
@@ -335,15 +421,45 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetSeq]);
 
+  useEffect(() => {
+    // plate CSS reads <body data-camera>: the row headers slim down at the horizon
+    document.body.dataset.camera = horizonOn ? 'horizon' : 'default';
+  }, [horizonOn]);
+
+  useEffect(() => {
+    const c = controls.current;
+    if (!horizonSeq || !layout || !c) return;
+    const seconds = reducedMotion() ? REDUCED_SECONDS : HORIZON_SECONDS;
+    if (useHorizon.getState().on) {
+      // keep the view being left (where a flight was heading, if one is under way), then tilt down to the skyline
+      const f = flight.current;
+      beforeHorizon.current = f ? { pos: f.toPos.clone(), target: f.toTarget.clone() } : { pos: camera.position.clone(), target: c.target.clone() };
+      const h = horizonFrame(layout, view);
+      fly(h.target, h.pos, seconds, HORIZON_FOV);
+    } else {
+      const back = beforeHorizon.current ?? overviewFrame(layout, view);
+      beforeHorizon.current = null;
+      fly(back.target.clone(), back.pos.clone(), seconds, FOV);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [horizonSeq]);
+
   useFrame((_, dt) => {
     const c = controls.current;
     if (!c) return;
     if (!framed.current && layout) {
       // first frame once both the layout and the controls exist
       framed.current = true;
-      const o = overviewFrame(layout, view);
+      // ?camera=horizon opens straight on the horizon view
+      const horizon = useHorizon.getState().on;
+      const o = horizon ? horizonFrame(layout, view) : overviewFrame(layout, view);
       camera.position.copy(o.pos);
       c.target.copy(o.target);
+      if (horizon) {
+        const cam = camera as THREE.PerspectiveCamera;
+        cam.fov = HORIZON_FOV;
+        cam.updateProjectionMatrix();
+      }
     }
     if (import.meta.env.DEV) {
       const w = window as unknown as { __rig: unknown; __cam: unknown };
@@ -356,8 +472,23 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
       const k = ease(f.t);
       camera.position.lerpVectors(f.fromPos, f.toPos, k);
       c.target.lerpVectors(f.fromTarget, f.toTarget, k);
+      if (f.fromFov !== f.toFov) {
+        const cam = camera as THREE.PerspectiveCamera;
+        cam.fov = THREE.MathUtils.lerp(f.fromFov, f.toFov, k);
+        cam.updateProjectionMatrix();
+      }
       if (f.t >= 1) flight.current = null;
+    } else {
+      // a drag or zoom that cut a tilt short leaves the lens part way; settle it on the mode's own
+      const cam = camera as THREE.PerspectiveCamera;
+      const want = useHorizon.getState().on ? HORIZON_FOV : FOV;
+      if (cam.fov !== want) {
+        cam.fov = Math.abs(cam.fov - want) < 0.05 ? want : THREE.MathUtils.damp(cam.fov, want, 4, dt);
+        cam.updateProjectionMatrix();
+      }
     }
+    // the horizon view (and the tilt back out of it) may orbit lower than the default view's floor
+    c.maxPolarAngle = useHorizon.getState().on || (f && f.fromFov !== f.toFov) ? HORIZON_MAX_POLAR : DEFAULT_MAX_POLAR;
     const idle = performance.now() - lastInteract.current > IDLE_DRIFT_AFTER_MS;
     const { selection, pending, commandDrawer } = useWorld.getState();
     const swaying = idle && !selection && !f && !pending && !commandDrawer.open;
@@ -384,7 +515,7 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
       screenSpacePanning={false}
       mouseButtons={{ LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }}
       minPolarAngle={0.2}
-      maxPolarAngle={1.3}
+      maxPolarAngle={DEFAULT_MAX_POLAR}
       zoomSpeed={0.8}
       rotateSpeed={0.55}
       panSpeed={0.9}

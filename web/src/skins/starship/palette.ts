@@ -24,6 +24,12 @@ export const STARSHIP = {
   planetLand: '#121716',
   planetAtmosphere: '#4d99ff',
   cityLights: '#ffb866',
+  /** The ringed gas giant far beyond the bow, seen only from the horizon camera. */
+  giantBandA: '#27324a',
+  giantBandB: '#56637f',
+  giantBandC: '#8f7f6c',
+  giantAtmosphere: '#7fb0ff',
+  giantRing: '#9aa3b6',
 };
 export type StarshipPalette = typeof STARSHIP;
 
@@ -47,4 +53,9 @@ export const STARSHIP_LIGHT = {
   planetOcean: '#2f76c2',
   planetLand: '#9fbb7a',
   planetAtmosphere: '#e8f4ff',
+  giantBandA: '#b9c9dd',
+  giantBandB: '#dfe7f1',
+  giantBandC: '#d8c4a8',
+  giantAtmosphere: '#ffffff',
+  giantRing: '#f2f6fb',
 } satisfies Partial<StarshipPalette>;

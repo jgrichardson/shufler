@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useResolvedTheme } from '../api';
 import { useKit } from './kit';
-import { ConceptBackdrop, HorizonDisc } from '../ConceptBackdrop';
+import { ConceptBackdrop, HorizonDisc, Ridge } from '../ConceptBackdrop';
 import { CONCEPT } from '../concepts';
 
 export const SUN_DIR = new THREE.Vector3(-0.78, 0.36, 0.42).normalize();
@@ -94,6 +94,21 @@ function Lights() {
   );
 }
 
+/**
+ * Three low ridgelines far below and around the board, dissolving into the haze at their foot. They sit
+ * under the horizon line and outside the Overview's frame, so only the horizon camera ever sees them.
+ */
+function HorizonRidges() {
+  const { p } = useKit();
+  return (
+    <>
+      <Ridge radius={1150} base={-260} height={170} color={p.ridgeFar} fog={p.skyBelow} seed={2.1} />
+      <Ridge radius={900} base={-260} height={130} color={p.ridgeMid} fog={p.skyBelow} seed={4.7} />
+      <Ridge radius={680} base={-260} height={95} color={p.ridgeNear} fog={p.skyBelow} seed={0.9} />
+    </>
+  );
+}
+
 /** Quiet Horizon: a calm gradient sky, its lights and a soft pool under the board. No clouds: the board is the only busy thing on screen. */
 export function Backdrop() {
   const { p } = useKit();
@@ -101,7 +116,14 @@ export function Backdrop() {
     <>
       <SkyDome />
       <Lights />
-      {CONCEPT ? <ConceptBackdrop /> : <HorizonDisc color={p.hemiGround} />}
+      {CONCEPT ? (
+        <ConceptBackdrop />
+      ) : (
+        <>
+          <HorizonDisc color={p.hemiGround} />
+          <HorizonRidges />
+        </>
+      )}
     </>
   );
 }

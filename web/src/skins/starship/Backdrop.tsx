@@ -153,6 +153,116 @@ function Planet() {
   );
 }
 
+/**
+ * Far beyond the bow, off to port and below the station's level, so its limb and ring rise just over the
+ * horizon camera's skyline while the Overview, which looks steeply down, never frames it.
+ */
+const GIANT_POS: [number, number, number] = [-700, -950, -4200];
+const GIANT_R = 1300;
+
+/** The horizon camera's skyline: a banded gas giant with a thin ring, lit from the same sun as the station. */
+function GasGiant() {
+  const { p } = useKit();
+  const light = useResolvedTheme() === 'light';
+  const body = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        fog: false,
+        uniforms: {
+          sunDir: { value: SUN_DIR },
+          bandA: { value: new THREE.Color(p.giantBandA) },
+          bandB: { value: new THREE.Color(p.giantBandB) },
+          bandC: { value: new THREE.Color(p.giantBandC) },
+          atmosphere: { value: new THREE.Color(p.giantAtmosphere) },
+          dayMin: { value: light ? 0.75 : 0.04 },
+        },
+        vertexShader: /* glsl */ `
+          varying vec3 vN;
+          varying vec3 vView;
+          varying vec3 vObj;
+          void main() {
+            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            vN = normalize(normalMatrix * normal);
+            vObj = normalize(position);
+            vView = normalize(-mv.xyz);
+            gl_Position = projectionMatrix * mv;
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform vec3 sunDir, bandA, bandB, bandC, atmosphere;
+          uniform float dayMin;
+          varying vec3 vN;
+          varying vec3 vView;
+          varying vec3 vObj;
+          float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+          float noise(vec3 p) {
+            vec3 i = floor(p), f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
+                       mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+          }
+          void main() {
+            // latitude bands, smeared sideways by a little turbulence
+            float t = noise(vObj * vec3(3.0, 16.0, 3.0)) * 0.6 + noise(vObj * vec3(7.0, 30.0, 7.0)) * 0.4;
+            float lat = vObj.y + (t - 0.5) * 0.05;
+            vec3 col = mix(bandA, bandB, 0.5 + 0.5 * sin(lat * 26.0));
+            col = mix(col, bandC, smoothstep(0.55, 0.95, 0.5 + 0.5 * sin(lat * 9.0 + 1.3)) * 0.7);
+            float day = max(dayMin, smoothstep(-0.12, 0.45, dot(vObj, sunDir)));
+            col *= day;
+            float rim = pow(1.0 - max(dot(vN, vView), 0.0), 3.0);
+            col += atmosphere * rim * 0.35 * day;
+            gl_FragColor = vec4(col, 1.0);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+          }`,
+      }),
+    [p, light],
+  );
+  const ring = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        fog: false,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        uniforms: {
+          tint: { value: new THREE.Color(p.giantRing) },
+          inner: { value: GIANT_R * 1.35 },
+          outer: { value: GIANT_R * 1.7 },
+          k: { value: light ? 0.55 : 0.4 },
+        },
+        vertexShader: /* glsl */ `
+          varying float vR;
+          void main() {
+            vR = length(position.xy);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform vec3 tint;
+          uniform float inner, outer, k;
+          varying float vR;
+          void main() {
+            float u = (vR - inner) / (outer - inner);
+            // a few concentric ringlets with a gap, fading at both edges
+            float a = (0.55 + 0.45 * sin(u * 40.0)) * smoothstep(0.0, 0.08, u) * smoothstep(1.0, 0.85, u) * (1.0 - 0.8 * smoothstep(0.58, 0.6, u) * smoothstep(0.66, 0.64, u));
+            gl_FragColor = vec4(tint, a * k);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+          }`,
+      }),
+    [p, light],
+  );
+  return (
+    <group position={GIANT_POS}>
+      <mesh material={body} renderOrder={-9} frustumCulled={false}>
+        <sphereGeometry args={[GIANT_R, 96, 64]} />
+      </mesh>
+      <mesh material={ring} rotation={[-Math.PI / 2, 0.1, 0]} renderOrder={-8} frustumCulled={false}>
+        <ringGeometry args={[GIANT_R * 1.35, GIANT_R * 1.7, 160, 1]} />
+      </mesh>
+    </group>
+  );
+}
+
 function Lights() {
   const { p } = useKit();
   const light = useResolvedTheme() === 'light';
@@ -197,13 +307,14 @@ function StudioEnvironment() {
   );
 }
 
-/** Starship backdrop: deep space, the planet, a cool key light with planet-shine, and studio reflections. */
+/** Starship backdrop: deep space, the planet, a gas giant on the horizon, a cool key light with planet-shine, and studio reflections. */
 export function Backdrop() {
   return (
     <>
       <SkyDome />
       {/* the dev concepts that bring their own ground drop the planet */}
       {!(CONCEPT?.starship && (CONCEPT.id === 'glow' || CONCEPT.id === 'studio')) && <Planet />}
+      {!CONCEPT?.starship && <GasGiant />}
       <Lights />
       <StudioEnvironment />
       {CONCEPT?.starship && <ConceptBackdrop />}
