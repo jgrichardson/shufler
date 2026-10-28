@@ -2,9 +2,11 @@
 # Build a Shufler release locally and print what to publish. It publishes nothing: no tag, no upload, no push.
 #
 #   packaging/release.sh            build web/dist, the sdist and the wheel into dist/, smoke-test the wheel
-#   packaging/release.sh --no-smoke skip the install test (it needs a free port 4781)
+#   packaging/release.sh --no-smoke skip the install test (it needs a free port, 4781 or SHUFLER_SMOKE_PORT)
 #
-# Outputs, all under dist/ at the repo root:
+# SHUFLER_RELEASE_OUT puts the outputs somewhere else (a temp dir for a trial build).
+#
+# Outputs, all under dist/ at the repo root unless SHUFLER_RELEASE_OUT is set:
 #   shufler-X.Y.Z.tar.gz               sdist with the web app inside; the Homebrew formula installs from this
 #   shufler-X.Y.Z-py3-none-any.whl    wheel with the web app inside; pipx, uv tool and install.sh install this
 #   shufler.rb                         packaging/homebrew/shufler.rb with this version's URL and sha256 filled in
@@ -12,7 +14,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="$ROOT/dist"
+OUT="${SHUFLER_RELEASE_OUT:-$ROOT/dist}"
 SMOKE=1
 [[ "${1:-}" == "--no-smoke" ]] && SMOKE=0
 
@@ -36,7 +38,7 @@ tar tzf "$SDIST" | grep 'shufler/web/index.html' >/dev/null || { echo "the sdist
 
 if [[ "$SMOKE" == 1 ]]; then
   echo "== smoke test"
-  "$ROOT/packaging/smoke-test.sh" "$WHEEL" 4781
+  "$ROOT/packaging/smoke-test.sh" "$WHEEL" "${SHUFLER_SMOKE_PORT:-4781}"
 fi
 
 SHA="$(shasum -a 256 "$SDIST" | cut -d' ' -f1)"

@@ -202,16 +202,16 @@ A drawer of local shells, for a console you want next to the scene. At most six,
 
 ### Agent access (MCP)
 
-`bin/shufler mcp` is an MCP server for Claude Code and Codex, so your agents can ask Shufler what is running: `status`, `needs_you`, `get_pr`, `read_session` and `list_work_items`, all read-only. An opt-in second tier lets an agent preview a prompt or an answer for another session and send it only through a separate confirm call. `bin/shufler mcp --print-config` prints the setup lines. See [`docs/MCP.md`](docs/MCP.md).
+`shufler mcp` (`bin/shufler mcp` in a clone) is an MCP server for Claude Code and Codex, so your agents can ask Shufler what is running: `status`, `needs_you`, `get_pr`, `read_session` and `list_work_items`, all read-only. An opt-in second tier lets an agent preview a prompt or an answer for another session and send it only through a separate confirm call. `shufler mcp --print-config` prints the setup lines. See [`docs/MCP.md`](docs/MCP.md).
 
 ## Status
 
-Shufler is early software, version 0.2.0. It was built for one developer's setup and is being opened up.
+Shufler is early software, version 0.3.0. It was built for one developer's setup and is being opened up.
 
 - It is macOS first. Terminals: cmux, iTerm2 and tmux, plus a no-terminal mode that works with any other terminal (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
 - Agent harnesses: Claude Code and the OpenAI Codex CLI, mixed freely (see [`docs/AGENTS.md`](docs/AGENTS.md)).
 - The only supported source control host is GitHub, through the `gh` CLI.
-- v0.2.0 adds the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md). From v0.3.0 you can install with Homebrew from the project's own tap, with `pipx` or `uv tool` from a release wheel, with the one-line installer, or from a clone (see [Install](#install)). It is not on PyPI or in Homebrew core.
+- v0.3.0 adds packaged installs (Homebrew from the project's own tap, `pipx` or `uv tool` from a release wheel, a one-line installer; see [Install](#install)), no-terminal mode with greyed-out levers, and an MCP server for your agents. It is not on PyPI or in Homebrew core. v0.2.0 added the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md).
 - The optional integrations (a reviewer bot, work item sources, custom commands) talk to your tools through commands you configure. They are all off by default.
 
 See [Support matrix](#support-matrix) for what is planned.
@@ -354,7 +354,7 @@ Everything machine-specific lives in one TOML file. The daemon looks for it in t
 | `[world] fix_pattern` | `data\|backfill\|migrat\|repair` | Regex on PR titles and branches that marks a fix needing a post-merge step |
 | `[[domain]]` | sample set | Row colours and the aliases that place a session or PR in a domain |
 
-### Domains
+### Domain settings
 
 A domain groups rows and work by area, and gives them a colour. A `[[domain]]` table has an `id`, `label`, `code`, `color` and a list of `aliases`. Aliases match lower-case words in workspace titles, PR title scopes, branch names and ledger areas. The ones in the example are samples. Replace them with your own areas. Anything that matches nothing lands in `fallback_domain`.
 
@@ -465,11 +465,11 @@ Every lever opens one confirm dialog with the exact command or URL. Focus, Open 
 
 If a session already has text typed in its input box, a dispatch is refused and shows you the draft.
 
-### Layers
+### Layer bar
 
 The bar under the top bar toggles Islands, Sessions, PRs, Conflicts, Needs me, Tethers and Beams, and sets Labels to Auto, All or None; the Horizon button at its end turns the horizon view on and off. `0` keeps only islands, pods and needs-me. Your choices are saved in the browser.
 
-### Context library
+### Using the context library
 
 Open it from the top bar or with `L`. An item is a reference to files or folders by path. Nothing is copied.
 
@@ -555,7 +555,7 @@ Also planned: `restart`, `logs` and `doctor` commands, and starting a new sessio
 - **Custom commands** run exactly the argv you configured. Shufler cannot tell a read from a write, so only configure commands you trust, and mark production ones `prod = true`.
 - **Processes.** Every 10 seconds (3 in no-terminal mode) the daemon lists running `claude` and `codex` processes with `ps`, and reads each new one's working directory (`lsof`) and terminal id from its environment (`ps -E`) to match it to a row. Only those fields are kept. Turn it off with `[terminal] processes = false`, except in no-terminal mode, where the processes are the rows.
 - **Levers the terminal cannot pull** (no-terminal mode, or a terminal adapter without that capability) are greyed out with the reason in their tooltip, and the daemon refuses them if called anyway. Nothing is typed, focused or opened.
-- **Agent access (MCP).** `bin/shufler mcp` gives your agents the floor's facts and, through `read_session`, other sessions' recent messages. Text from one session can carry instructions aimed at another (prompt injection), so treat it as data. The dispatch tools that type into other sessions are off unless you set `[mcp] allow_dispatch = true`; they preview first, send only on a second `confirm_dispatch` call, refuse never-do text, control characters and a session prompting itself, and are rate-limited. Keep `confirm_dispatch` off your harness's auto-allow list so you approve each send. The threat model is in [`docs/MCP.md`](docs/MCP.md).
+- **Agent access (MCP).** `shufler mcp` gives your agents the floor's facts and, through `read_session`, other sessions' recent messages. Text from one session can carry instructions aimed at another (prompt injection), so treat it as data. The dispatch tools that type into other sessions are off unless you set `[mcp] allow_dispatch = true`; they preview first, send only on a second `confirm_dispatch` call, refuse never-do text, control characters and a session prompting itself, and are rate-limited. Keep `confirm_dispatch` off your harness's auto-allow list so you approve each send. The threat model is in [`docs/MCP.md`](docs/MCP.md).
 - **Built-in terminals** are real shells on your machine: at most 6, closed after 2 hours idle. Keystrokes are never logged. Presets type a command but never press Enter.
 
 Do not expose port 4700 beyond your machine.

@@ -25,6 +25,7 @@ import os
 import re
 import secrets
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -658,9 +659,16 @@ def _tool_error(message: str) -> dict:
 
 
 def version() -> str:
+    """The checkout's pyproject.toml in a clone, else the installed package's metadata."""
     try:
         return tomllib.loads((config.DAEMON_DIR / "pyproject.toml").read_text())["project"]["version"]
     except (OSError, KeyError, tomllib.TOMLDecodeError):
+        pass
+    try:
+        from importlib import metadata
+
+        return metadata.version(config.SLUG)
+    except Exception:  # noqa: BLE001 - serverInfo must never fail initialize
         return "0"
 
 
@@ -683,8 +691,15 @@ def serve(server: ShuflerMCP, stdin=None, stdout=None) -> None:
 
 # ---------------------------------------------------------------- --print-config
 
+def cli_path() -> str:
+    """The command an agent harness should launch: bin/shufler in a clone, the installed `shufler` otherwise."""
+    if not config.INSTALLED:
+        return str(config.ROOT / "bin" / config.SLUG)
+    return shutil.which(config.SLUG) or config.SLUG
+
+
 def print_config() -> str:
-    cli = str(config.ROOT / "bin" / config.SLUG)
+    cli = cli_path()
     env = {k: os.environ[k] for k in (config.ENV_PREFIX + "PORT", config.ENV_PREFIX + "CONFIG") if os.environ.get(k)}
     claude_env = "".join(f" -e {k}={shlex.quote(v)}" for k, v in env.items())
     codex_env = ("env = { " + ", ".join(f"{k} = {json.dumps(v)}" for k, v in env.items()) + " }\n") if env else ""

@@ -1,6 +1,6 @@
 [project]
 name = "shufler"
-version = "0.2.0"
+version = "0.3.0"
 description = "A 3D control room for developers who run many AI coding agent sessions at once."
 readme = "README.md"
 license = "MIT"

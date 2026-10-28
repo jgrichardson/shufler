@@ -12,7 +12,7 @@ def test_version_and_help(capsys):
     assert capsys.readouterr().out.startswith("shufler ")
     assert cli.main(["--help"]) == 0
     out = capsys.readouterr().out
-    for cmd in ("init", "setup", "start", "stop", "status", "serve", "install", "library", "version"):
+    for cmd in ("init", "setup", "start", "stop", "status", "serve", "install", "library", "mcp", "version"):
         assert cmd in out
 
 
@@ -70,3 +70,16 @@ def test_serve_execs_uvicorn(monkeypatch):
     monkeypatch.setattr(cli.os, "execv", lambda path, argv: seen.update(path=path, argv=argv))
     cli.main(["serve", "--port", "4782"])
     assert Path(seen["path"]).name.startswith("python") and seen["argv"][-1] == "4782"
+
+
+def test_mcp_print_config(capsys):
+    assert cli.main(["mcp", "--print-config"]) == 0
+    out = capsys.readouterr().out
+    assert "claude mcp add" in out and "[mcp_servers." in out and 'args = ["mcp"]' in out
+
+
+def test_setup_lists_the_none_terminal(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("SHUFLER_CONFIG", str(tmp_path / "config.toml"))
+    assert cli.main(["setup", "--terminal", "none"]) == 0
+    assert 'kind = "none"' in (tmp_path / "config.toml").read_text()
+    assert "none" in cli.usage()

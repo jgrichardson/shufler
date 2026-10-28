@@ -4,7 +4,7 @@ The same commands as bin/shufler, for installs without a checkout: nothing to sy
 on this package's own interpreter. bin/shufler stays the command in a clone (it adds `dev` and `test`).
 
     shufler init [--force] | setup [...] | start | stop | status | serve [--port N]
-            | install | uninstall | library ... | version
+            | install | uninstall | library ... | mcp [--print-config] | version
 """
 
 from __future__ import annotations
@@ -306,24 +306,34 @@ def cmd_library(args: list[str]) -> int:
     return 0
 
 
+def cmd_mcp(args: list[str]) -> int:
+    """stdio MCP server for agents (docs/MCP.md). stdout is the protocol channel, so nothing else prints there."""
+    from . import mcp_server
+
+    mcp_server.main(args)
+    return 0
+
+
 def usage() -> str:
     return f"""Shufler {version()}: A 3D control room for developers who run many AI coding agent sessions
 (Claude Code and the OpenAI Codex CLI) at once.
 
 usage: {NAME} <command>
   init [--force]        copy the example config to ~/.config/{NAME}/config.toml
-  setup                 pick your terminal (cmux, iTerm2, tmux) and agent harnesses (--agents auto|claude,codex)
+  setup                 pick your terminal (cmux, iTerm2, tmux, none) and agent harnesses (--agents auto|claude,codex)
   start | stop          run or stop the daemon on http://{HOST}:{PORT}
   status                process, health, and the age of each source (terminal, agent harnesses, GitHub)
   serve [--port N]      run the daemon in the foreground (launchd, brew services)
   install | uninstall   launchd login item
   library ...           context library: add, list, grant, send
+  mcp [--print-config]  MCP server on stdio so agents can ask what is running (docs/MCP.md)
   version               print the version
 """
 
 
 COMMANDS = {"init": cmd_init, "setup": cmd_setup, "start": cmd_start, "stop": cmd_stop, "status": cmd_status,
-            "serve": cmd_serve, "install": cmd_install, "uninstall": cmd_uninstall, "library": cmd_library}
+            "serve": cmd_serve, "install": cmd_install, "uninstall": cmd_uninstall, "library": cmd_library,
+            "mcp": cmd_mcp}
 
 
 def main(argv: list[str] | None = None) -> int:

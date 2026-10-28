@@ -41,6 +41,7 @@ cd "$TMP"  # away from any checkout, so only the installed package can be import
 "$BIN/shufler" setup --help | grep -- '--terminal' >/dev/null || fail "shufler setup --help"
 "$BIN/shufler" setup --yes >/dev/null || fail "shufler setup --yes"
 [[ -f "$HOME/.config/shufler/config.toml" ]] || fail "setup wrote no config"
+"$BIN/shufler" mcp --print-config | grep -F 'args = ["mcp"]' >/dev/null || fail "shufler mcp --print-config"
 "$BIN/shufler" start || fail "shufler start"
 
 page="$(curl -fsS "http://127.0.0.1:$PORT/")" || fail "GET /"
@@ -51,6 +52,8 @@ curl -fsS -o /dev/null "http://127.0.0.1:$PORT$asset" || fail "the web app's scr
 curl -fsS "http://127.0.0.1:$PORT/api/health" | "$BIN/python" -c 'import json,sys; json.load(sys.stdin)' \
   || fail "/api/health"
 "$BIN/shufler" status >/dev/null || fail "shufler status"
+init='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}'
+printf '%s\n' "$init" | "$BIN/shufler" mcp 2>/dev/null | grep -F '"serverInfo"' >/dev/null || fail "shufler mcp initialize"
 "$BIN/shufler" stop
 if curl -fsS --max-time 1 "http://127.0.0.1:$PORT/" >/dev/null 2>&1; then fail "still answering after stop"; fi
 

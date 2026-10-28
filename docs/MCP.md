@@ -10,11 +10,14 @@ It is a client of the running daemon. It reads the same HTTP endpoints the web a
 
 ## Set it up
 
-Start the daemon (`bin/shufler start`), then print ready-to-paste snippets:
+Start the daemon (`shufler start`), then print ready-to-paste snippets:
 
 ```bash
-bin/shufler mcp --print-config
+shufler mcp --print-config
 ```
+
+From a clone the command is `bin/shufler`; the snippets then point at the clone's `bin/shufler`, and in a
+packaged install (Homebrew, `pipx`, `uv tool`) at the `shufler` on your `PATH`.
 
 For Claude Code it prints a `claude mcp add` line:
 
