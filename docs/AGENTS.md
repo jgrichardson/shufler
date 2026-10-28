@@ -53,7 +53,8 @@ empty pane). The web shows a small `codex` tag on Codex rows and names the harne
 
 Matching a process to a row is the terminal's job and works the same for every harness (docs/TERMINALS.md):
 the terminal's id in the process environment, then the tty, then the joined session, then a unique cwd. A
-Claude process never takes a Codex transcript and the other way round, even in the same directory.
+Claude process never takes a Codex transcript and the other way round, even in the same directory. With
+`[terminal] kind = "none"` there is no terminal to match against: each process (one per tty) is its own row.
 
 ## Claude Code
 

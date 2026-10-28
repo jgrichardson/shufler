@@ -349,7 +349,9 @@ def plan(action: str, params: dict, snapshot: dict) -> Plan:
     caps = caps_of(term)
     for flag, what in TERMINAL_NEEDS.get(action, ()):
         if not caps[flag]:
-            raise ActionError(f"the {term_label(term)} adapter cannot {what}; this lever is off for this terminal")
+            refusal = getattr(term, "refusal", None)
+            raise ActionError(refusal.format(what=what) if refusal else
+                              f"the {term_label(term)} adapter cannot {what}; this lever is off for this terminal")
 
     if action == "focus":
         st = _station(snapshot, params)

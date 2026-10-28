@@ -22,8 +22,12 @@ SLUG = "shufler"
 ENV_PREFIX = "SHUFLER_"
 
 HOME = Path.home()
-DAEMON_DIR = Path(__file__).resolve().parents[1]
-EXAMPLE_CONFIG = DAEMON_DIR / "config.example.toml"
+PACKAGE_DIR = Path(__file__).resolve().parent
+DAEMON_DIR = PACKAGE_DIR.parent
+# An installed wheel (pipx, uv tool, Homebrew) carries the example config and the web build inside the package;
+# a source checkout keeps them at daemon/config.example.toml and web/dist.
+INSTALLED = (PACKAGE_DIR / "config.example.toml").is_file()
+EXAMPLE_CONFIG = (PACKAGE_DIR if INSTALLED else DAEMON_DIR) / "config.example.toml"
 
 APP_DIR = SLUG
 
@@ -80,8 +84,9 @@ app = section("app")
 HOST = "127.0.0.1"
 PORT = int(env("PORT") or app.get("port") or 4700)
 
-ROOT = _p("ROOT", DAEMON_DIR.parent)
-WEB_DIST = _p("WEB_DIST", ROOT / "web" / "dist")
+# ROOT is the repo in a source checkout; an installed copy keeps its action log in the data dir instead.
+ROOT = _p("ROOT", DATA_DIR if INSTALLED else DAEMON_DIR.parent)
+WEB_DIST = _p("WEB_DIST", PACKAGE_DIR / "web" if INSTALLED else ROOT / "web" / "dist")
 ACTIONS_LOG = _p("ACTIONS_LOG", app.get("actions_log") or ROOT / "actions.jsonl")
 # Names that mean "the person running Shufler" in ledger ball cells and session notes ("me: merge #12").
 OWNER_ALIASES = tuple(a.lower() for a in (app.get("owner_aliases") or ["me"]))
@@ -300,6 +305,18 @@ def terminal_kind() -> str:
     return resolve_kind(TERMINAL_KIND, CFG)
 
 
+_TERMINAL_CAPS: dict[str, dict[str, bool]] = {}
+
+
+def terminal_caps() -> dict[str, bool]:
+    """The active terminal's capability flags (adapters/terminal CAPABILITY_FLAGS); the web greys out levers that are off."""
+    from .adapters.terminal import caps_of, registered
+    kind = terminal_kind()
+    if kind not in _TERMINAL_CAPS:  # once per kind: registered() reads the entry points
+        _TERMINAL_CAPS[kind] = caps_of(registered().get(kind))
+    return dict(_TERMINAL_CAPS[kind])
+
+
 def enabled_agents() -> list[str]:
     """The agent harnesses that run ([agents] enabled, "auto" resolved by the adapters/agent registry)."""
     from .adapters.agent import enabled
@@ -320,6 +337,7 @@ def capabilities() -> dict:
     return {
         "product": PRODUCT_NAME,
         "terminal": terminal_kind(),
+        "terminal_caps": terminal_caps(),
         "agent": AGENT_ADAPTER,
         "agents": enabled_agents(),
         "scm": SCM_ADAPTER if REPO else None,

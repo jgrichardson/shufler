@@ -32,6 +32,7 @@ from typing import Any, Protocol
 from .base import ALL_CAPS, CAPABILITY_FLAGS, Detection, short_tty
 from .cmux import CmuxAdapter
 from .iterm2 import ITerm2Adapter
+from .none import NoTerminalAdapter
 from .tmux import TmuxAdapter
 
 SURFACE_PLACEHOLDER = "<first-terminal-surface>"
@@ -65,25 +66,28 @@ class TerminalAdapter(Protocol):
 # ---------------------------------------------------------------- registry
 
 # Auto-detect tries these in order. A third-party adapter can also register through the
-# `shufler.terminals` entry point group (name = kind, value = "package.module:Class").
+# `shufler.terminals` entry point group (name = kind, value = "package.module:Class"). "none" (rows from running
+# agent sessions, no terminal levers) stays last: it is the fallback when no terminal is running or installed.
 REGISTRY: dict[str, type] = {
     "cmux": CmuxAdapter,
     "iterm2": ITerm2Adapter,
     "tmux": TmuxAdapter,
+    "none": NoTerminalAdapter,
 }
 
 
 def registered() -> dict[str, type]:
-    out = dict(REGISTRY)
+    out = {k: v for k, v in REGISTRY.items() if k != "none"}
     try:
         for ep in importlib.metadata.entry_points(group="shufler.terminals"):
-            if ep.name not in out:
+            if ep.name not in out and ep.name != "none":
                 try:
                     out[ep.name] = ep.load()
                 except Exception:  # noqa: BLE001 - a broken plugin must not stop the daemon
                     continue
     except Exception:  # noqa: BLE001
         pass
+    out["none"] = REGISTRY["none"]  # after plugins, so auto-detect tries every real terminal first
     return out
 
 
@@ -106,15 +110,16 @@ def detect_all(cfg: dict | None = None) -> dict[str, Detection]:
 
 
 def auto_kind(cfg: dict | None = None) -> str:
-    """The first registered terminal that is running, else the first one installed, else cmux."""
+    """Running terminal first, then "none" (rows from running agent sessions), then a terminal that is only installed.
+
+    "none" beats an installed-but-not-running terminal, so a quit iTerm2 does not leave Shufler waiting on a window
+    that is not there. The price: a daemon that starts at login, before the terminal app, resolves to "none" and
+    keeps it until restart (the choice is made once per process) or until `[terminal] kind` is set explicitly."""
     found = detect_all(cfg)
     for kind, d in found.items():
-        if d.running:
+        if kind != "none" and d.running:
             return kind
-    for kind, d in found.items():
-        if d.installed:
-            return kind
-    return "cmux"
+    return "none"
 
 
 _resolved: str | None = None
@@ -145,7 +150,7 @@ def build(kind: str | None = None, cfg: dict | None = None) -> TerminalAdapter:
 
 
 __all__ = [
-    "TerminalAdapter", "CmuxAdapter", "ITerm2Adapter", "TmuxAdapter", "Detection", "REGISTRY",
+    "TerminalAdapter", "CmuxAdapter", "ITerm2Adapter", "TmuxAdapter", "NoTerminalAdapter", "Detection", "REGISTRY",
     "CAPABILITY_FLAGS", "ALL_CAPS", "short_tty", "SURFACE_PLACEHOLDER", "NEW_SURFACE_PLACEHOLDER", "registered", "caps_of",
     "detect_all", "auto_kind", "resolve_kind", "build",
 ]

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Workpiece } from '../../types';
 import { capOn, useCaps, useWorld } from '../../store';
+import { useLeverOff } from '../../lib/terminalCaps';
 import { openTerminal } from '../terminals';
 import { CI_COLOR, REVIEWER_COLOR, PHASE_ACCENT } from '../../lib/colors';
 import { domainDef, PHASE_LABEL } from '../../lib/domains';
@@ -63,6 +64,8 @@ function MergeBox({ w }: { w: Workpiece }) {
 
 export function ItemPanel({ w }: { w: Workpiece }) {
   const caps = useCaps();
+  const sendOff = useLeverOff('dispatch');
+  const focusOff = useLeverOff('focus');
   const stations = useWorld((s) => s.snapshot?.stations);
   const owners = (stations ?? []).filter((s) => w.station_ids.includes(s.id) || s.id === w.station_id);
   const owner = owners[0];
@@ -110,12 +113,12 @@ export function ItemPanel({ w }: { w: Workpiece }) {
           </div>
           <div className="btn-row wrap">
             {w.mergeable === 'CONFLICTING' && owner && (
-              <button className="btn" onClick={() => requestAction('dispatch', { station_id: owner.id, text: `#${w.pr}: merge the base branch in, resolve the conflicts, run the affected tests, push.` })}>
+              <button className="btn" disabled={!!sendOff} title={sendOff ?? undefined} onClick={() => requestAction('dispatch', { station_id: owner.id, text: `#${w.pr}: merge the base branch in, resolve the conflicts, run the affected tests, push.` })}>
                 Dispatch: resolve conflicts
               </button>
             )}
             {w.reviewer === 'changes_requested' && owner && (
-              <button className="btn" onClick={() => requestAction('dispatch', { station_id: owner.id, text: `#${w.pr}: fix the review findings, push, then re-request review.` })}>
+              <button className="btn" disabled={!!sendOff} title={sendOff ?? undefined} onClick={() => requestAction('dispatch', { station_id: owner.id, text: `#${w.pr}: fix the review findings, push, then re-request review.` })}>
                 Dispatch: fix review findings
               </button>
             )}
@@ -176,7 +179,7 @@ export function ItemPanel({ w }: { w: Workpiece }) {
           />
           <div className="btn-row wrap">
             {w.closeout_owed && (
-              <button className="btn primary" onClick={() => requestAction('postmerge', { pr: w.pr!, ...(owner ? { station_id: owner.id } : {}) })}>
+              <button className="btn primary" disabled={!!sendOff} title={sendOff ?? undefined} onClick={() => requestAction('postmerge', { pr: w.pr!, ...(owner ? { station_id: owner.id } : {}) })}>
                 Draft close-out message
               </button>
             )}
@@ -212,7 +215,7 @@ export function ItemPanel({ w }: { w: Workpiece }) {
         {owners.map((s) => (
           <div key={s.id} className="owner-row">
             <StationRow s={s} items={[]} />
-            <button className="btn xs" onClick={() => requestAction('focus', { station_id: s.id })}>
+            <button className="btn xs" disabled={!!focusOff} title={focusOff ?? undefined} onClick={() => requestAction('focus', { station_id: s.id })}>
               Focus
             </button>
           </div>

@@ -1,10 +1,10 @@
 [project]
-name = "shufler-daemon"
-version = "0.2.0"
+name = "shufler"
+version = "0.3.0"
 description = "A 3D control room for developers who run many AI coding agent sessions at once."
-readme = "../README.md"
+readme = "README.md"
 license = "MIT"
-license-files = ["../LICENSE"]
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.159.1",
@@ -14,10 +14,34 @@ dependencies = [
     "watchfiles>=1.3.0",
 ]
 
+[project.scripts]
+shufler = "shufler.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/jgrichardson/shufler"
 Repository = "https://github.com/jgrichardson/shufler"
 Issues = "https://github.com/jgrichardson/shufler/issues"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+# The wheel carries the example config and the built web app (web/dist, as shufler/web), so an installed
+# `shufler` needs no checkout. hatch_build.py adds web/dist when it exists; packaging/release.sh builds it first.
+[tool.hatch.build.targets.wheel]
+packages = ["shufler"]
+artifacts = ["shufler/web/**"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"config.example.toml" = "shufler/config.example.toml"
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+
+[tool.hatch.build.targets.sdist]
+include = ["shufler", "tests", "config.example.toml", "hatch_build.py", "README.md", "LICENSE"]
+artifacts = ["shufler/web/**"]
+
+[tool.hatch.build.targets.sdist.hooks.custom]
 
 [dependency-groups]
 dev = [

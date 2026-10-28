@@ -3,6 +3,7 @@ import type { ActionName } from '../../types';
 import { SUFFIX_PLAIN, SUFFIX_SHORT, fillPrompt } from '../prompts';
 import { useConfig } from '../../api/config';
 import { requestAction } from '../requestAction';
+import { useLeverOff } from '../../lib/terminalCaps';
 
 interface Props {
   stationId: string;
@@ -26,6 +27,7 @@ export function DispatchBox({ stationId, pr, prefix = '', placeholder, sendLabel
   const prompts = useConfig((c) => c.prompts);
   const groups = [...new Set(prompts.map((p) => p.group))];
   const final = `${prefix}${text.trim()}${plain ? SUFFIX_PLAIN : ''}${short ? SUFFIX_SHORT : ''}`;
+  const off = useLeverOff(action);
   return (
     <div className={`dispatch-box${compact ? ' compact' : ''}`}>
       {showLibrary && (
@@ -67,10 +69,11 @@ export function DispatchBox({ stationId, pr, prefix = '', placeholder, sendLabel
           placeholder={placeholder ?? 'Type a prompt for this session…'}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && text.trim()) requestAction(action, { station_id: stationId, text: final });
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && text.trim() && !off) requestAction(action, { station_id: stationId, text: final });
           }}
         />
       </div>
+      {off && <div className="lever-off-note">{off}</div>}
       <div className="btn-row">
         <label className="check">
           <input type="checkbox" checked={plain} onChange={(e) => setPlain(e.target.checked)} /> plain speak
@@ -78,7 +81,7 @@ export function DispatchBox({ stationId, pr, prefix = '', placeholder, sendLabel
         <label className="check">
           <input type="checkbox" checked={short} onChange={(e) => setShort(e.target.checked)} /> short, no opening line
         </label>
-        <button className="btn primary" disabled={!text.trim()} onClick={() => requestAction(action, { station_id: stationId, text: final })}>
+        <button className="btn primary" disabled={!text.trim() || !!off} title={off ?? undefined} onClick={() => requestAction(action, { station_id: stationId, text: final })}>
           {sendLabel}
         </button>
       </div>

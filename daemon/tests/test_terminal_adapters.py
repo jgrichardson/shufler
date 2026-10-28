@@ -189,7 +189,8 @@ def test_tmux_argv_builders():
 
 def test_registry_lists_every_adapter_with_the_contract():
     reg = registered()
-    assert list(REGISTRY) == ["cmux", "iterm2", "tmux"] and set(REGISTRY) <= set(reg)
+    assert list(REGISTRY) == ["cmux", "iterm2", "tmux", "none"] and set(REGISTRY) <= set(reg)
+    assert list(reg)[-1] == "none"  # after any plugin: auto-detect tries every real terminal first
     for kind, cls in REGISTRY.items():
         assert cls.name == kind and cls.label and isinstance(cls.CONFIG_DEFAULTS, dict)
         assert callable(cls.detect) and callable(cls.from_config)
@@ -218,6 +219,7 @@ def test_registry_reads_the_entry_point_group(monkeypatch):
     reg = registered()
     assert seen == ["shufler.terminals"]
     assert reg["wez"] is New and reg["kitty"] is Old and reg["cmux"] is CmuxAdapter
+    assert list(reg)[-1] == "none"
 
 
 def test_build_from_config_sections():
@@ -232,18 +234,22 @@ def test_build_from_config_sections():
         build("wezterm", cfg)
 
 
-def test_auto_detect_prefers_running_then_installed(monkeypatch):
+def test_auto_detect_order_running_then_none_then_installed(monkeypatch):
     def fake(states):
         for kind, (inst, run) in states.items():
             monkeypatch.setattr(REGISTRY[kind], "detect", classmethod(lambda cls, cfg=None, i=inst, r=run: Detection(i, r)))
-    fake({"cmux": (True, False), "iterm2": (True, True), "tmux": (True, True)})
+    off, inst = (False, False), (True, False)
+    # 1. a running terminal wins, first in registry order, even when others are installed
+    fake({"cmux": inst, "iterm2": (True, True), "tmux": (True, True), "none": inst})
     assert auto_kind({}) == "iterm2"
-    fake({"cmux": (True, True), "iterm2": (True, True), "tmux": (False, False)})
+    fake({"cmux": (True, True), "iterm2": (True, True), "tmux": off, "none": inst})
     assert auto_kind({}) == "cmux"
-    fake({"cmux": (False, False), "iterm2": (False, False), "tmux": (True, False)})
-    assert auto_kind({}) == "tmux"
-    fake({"cmux": (False, False), "iterm2": (False, False), "tmux": (False, False)})
-    assert auto_kind({}) == "cmux"
+    # 2. nothing running: "none" beats a terminal that is only installed
+    fake({"cmux": off, "iterm2": inst, "tmux": inst, "none": inst})
+    assert auto_kind({}) == "none"
+    # 3. nothing running or installed: "none" as well
+    fake({"cmux": off, "iterm2": off, "tmux": off, "none": inst})
+    assert auto_kind({}) == "none"
 
 
 # ---------------------------------------------------------------- capability gating and health

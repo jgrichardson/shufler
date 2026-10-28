@@ -18,9 +18,11 @@ import { tone } from '../tone';
 import { stationCommands } from '../commands';
 import { InlineCommand } from '../CommandForm';
 import { focusLabel, newTabLabel, useTerminalName } from '../../lib/terminalName';
+import { useLeverOff } from '../../lib/terminalCaps';
 
 export function StationOverview({ s }: { s: Station }) {
   const terminal = useTerminalName();
+  const focusOff = useLeverOff('focus');
   const workpieces = useWorld((st) => st.snapshot?.workpieces);
   const items = (workpieces ?? []).filter((w) => w.station_ids.includes(s.id) || w.station_id === s.id) as Workpiece[];
   const focus = items.find((w) => w.id === s.focus_workpiece_id);
@@ -62,7 +64,7 @@ export function StationOverview({ s }: { s: Station }) {
           <div className="muted">No session note.</div>
         )}
         <div className="btn-row">
-          <button className="btn primary" onClick={() => requestAction('focus', { station_id: s.id })}>
+          <button className="btn primary" disabled={!!focusOff} title={focusOff ?? undefined} onClick={() => requestAction('focus', { station_id: s.id })}>
             {focusLabel(terminal)}
           </button>
         </div>
@@ -104,6 +106,8 @@ export function StationActions({ s }: { s: Station }) {
   const caps = useCaps();
   const terminal = useTerminalName();
   const commands = stationCommands(caps);
+  const focusOff = useLeverOff('focus');
+  const openOff = useLeverOff('open_tab');
   return (
     <div className="panel-body">
       <Section title="Dispatch">
@@ -128,10 +132,10 @@ export function StationActions({ s }: { s: Station }) {
               Open terminal here
             </button>
           )}
-          <button className="btn" onClick={() => requestAction('open_tab', { station_id: s.id })}>
+          <button className="btn" disabled={!!openOff} title={openOff ?? undefined} onClick={() => requestAction('open_tab', { station_id: s.id })}>
             {newTabLabel(terminal)}
           </button>
-          <button className="btn" onClick={() => requestAction('focus', { station_id: s.id })}>
+          <button className="btn" disabled={!!focusOff} title={focusOff ?? undefined} onClick={() => requestAction('focus', { station_id: s.id })}>
             {focusLabel(terminal)}
           </button>
         </div>

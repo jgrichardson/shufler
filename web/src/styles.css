@@ -975,3 +975,12 @@ body[data-world='islands'] .row-head { max-width: 190px; }
   .statusbar { gap: 14px; }
   .conn .updated { display: none; }
 }
+
+/* Levers the active terminal cannot pull (lib/terminalCaps): greyed out, with the reason in the tooltip and here. */
+.lever-off-note { margin-top: 6px; font-size: 11.5px; line-height: 1.4; color: var(--muted); padding: 5px 8px; border-radius: 7px; border: 1px dashed color-mix(in srgb, var(--overlay) 22%, transparent); }
+.decision-option:disabled { opacity: .45; cursor: not-allowed; }
+.decision-option:disabled:hover { background: color-mix(in srgb, var(--overlay) 5%, transparent); }
+.statusbar .follow:disabled { opacity: .5; cursor: not-allowed; }
+.statusbar .follow:disabled:hover { background: none; }
+/* a terminal-off lever (its title starts "Off:") stays a touch more legible than a plain disabled button: it is read, not skipped */
+.btn:disabled[title^="Off:"] { opacity: .55; }

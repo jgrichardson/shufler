@@ -10,6 +10,7 @@ daemon does not depend on any one terminal: everything terminal-specific lives i
 | [cmux](#cmux) | supported (the original) | the `cmux` CLI | none |
 | [iTerm2](#iterm2) | supported | AppleScript through `osascript` | none (macOS Automation permission) |
 | [tmux](#tmux) | supported | the `tmux` CLI | none |
+| [any other (`none`)](#no-terminal-none) | supported, watch only | rows from running agent processes (`ps`) | none |
 
 ## Choosing your terminal
 
@@ -18,6 +19,7 @@ shufler setup                      # interactive: lists every terminal, detected
 shufler setup --yes                # accept the current or detected choice (scripts, CI)
 shufler setup --terminal iterm2    # pick one without prompts
 shufler setup --terminal tmux --set rows=window --set socket_name=work
+shufler setup --terminal none      # any other terminal: rows from the running sessions, no terminal levers
 shufler status                     # shows the active terminal and whether it is reachable
 ```
 
@@ -32,7 +34,7 @@ What setup writes:
 
 ```toml
 [terminal]
-kind = "iterm2"          # "cmux" | "iterm2" | "tmux" | "auto"
+kind = "iterm2"          # "cmux" | "iterm2" | "tmux" | "none" | "auto"
 
 [iterm2]
 group_by = "window"      # or "tab_prefix"
@@ -40,12 +42,13 @@ prefix_separator = " · "
 ```
 
 `kind = "auto"` (the default when `kind` is missing) picks the first terminal that is running, in the order
-cmux, iTerm2, tmux; if none is running, the first one installed. The `utility` and `processes` options (see
+cmux, iTerm2, tmux (then any plug-in); if none is running, `none`. An installed terminal that is not running is not chosen. `auto` is resolved once, when the daemon starts, so a daemon that starts at login before the terminal app falls back to `none` until it is restarted or `kind` is set explicitly (for example `kind = "iterm2"`). The `utility` and `processes` options (see
 `daemon/config.example.toml`) live under `[terminal]`, next to `kind`. The environment variable
 `SHUFLER_TERMINAL=iterm2` overrides `kind` for one run, which is handy for a second test daemon.
 
-The snapshot reports the active terminal in `capabilities.terminal`, and its health shows up under
-`sources.<terminal>` (`sources.cmux`, `sources.iterm2`, `sources.tmux`).
+The snapshot reports the active terminal in `capabilities.terminal`, what it can do in
+`capabilities.terminal_caps` (see [Capability flags](#capability-flags)), and its health under
+`sources.<terminal>` (`sources.cmux`, `sources.iterm2`, `sources.tmux`, `sources.none`).
 
 ## How each terminal maps
 
@@ -150,6 +153,39 @@ rows = "pane"              # or "window" (targets the window's active pane)
   does not switch an attached client to another tmux session, because that needs the client's name.
 - tmux has no colours, descriptions or ports for rows.
 
+## No terminal (`none`)
+
+```toml
+[terminal]
+kind = "none"
+```
+
+For any terminal Shufler has no adapter for (Terminal.app, Ghostty, WezTerm, Kitty, Warp, an editor's
+terminal, a session over ssh), or when you only want to watch. Rows come from the running agent processes
+themselves, the same `ps` scan that tells open sessions from closed ones elsewhere (see
+[`AGENTS.md`](AGENTS.md)), every 3 seconds:
+
+| | none |
+|---|---|
+| Row | a tty that runs an interactive `claude` or `codex` (a process without a tty gets its own row) |
+| Row id | `tty-<tty>` (`tty-ttys003`), else `pid-<pid>` |
+| Title | the session's `--name`, else its cwd's basename (`api`, `api.2`, ... when several share it) |
+| Group | none: every row is in the ungrouped hall |
+| Order | oldest session first |
+| cwd | the process's cwd (`lsof`), or its `codex -C` directory |
+| Focused row (Follow) | none |
+| Process match | each process carries its row id, so it always lands on its own row |
+
+State, model, tokens, context, questions, approvals read from transcripts, notes and PRs join exactly as with
+any terminal. What needs a terminal is off: every capability flag is `False`, so the web greys out sending a
+prompt, answering a question, running a skill, library send, Focus, new tabs and terminal sync (each with a
+tooltip saying why), and the daemon refuses them with "no supported terminal is configured ..., pick a terminal
+with `shufler setup`". The adapter's command builders raise if anything calls them past that check.
+
+Limits: a session that exits takes its row with it (no pane is left to show as closed). The Codex approval
+overlay cannot be read off the screen; an escalated command still shows as a pending approval from the rollout
+(see [`AGENTS.md`](AGENTS.md)), and you answer it in the session's own window. `[terminal] processes = false` has no effect here, since the processes are the rows.
+
 ## Writing a terminal adapter
 
 A terminal adapter is one Python module plus one line in the registry. Wezterm, Kitty, Ghostty, Zellij or
@@ -207,11 +243,21 @@ and the never-do guard checks every step. The surface arguments may be the place
 
 ### Capability flags
 
-`can_send`, `can_focus`, `can_read_screen`, `can_open`, `has_groups`. Set a flag to `False` when your terminal
-cannot do it; a flag you leave out counts as supported. The daemon refuses a lever whose flag is off with a
-plain message ("the X adapter cannot focus a session; this lever is off for this terminal") instead of running
-a command that cannot work. Sending a prompt needs both `can_send` and `can_read_screen`, because the daemon
-reads the input box before typing so it never clobbers a half-typed draft.
+`can_send`, `can_focus`, `can_read_screen`, `can_open`, `has_groups`, `can_follow`. Set a flag to `False` when
+your terminal cannot do it; a flag you leave out counts as supported. The snapshot carries them as
+`capabilities.terminal_caps`, and the web greys out each lever whose flag is off, with a tooltip that says why.
+The daemon also refuses such a lever with a plain message ("the X adapter cannot focus a session; this lever is
+off for this terminal") instead of running a command that cannot work; an adapter can word it itself with a
+`refusal` attribute, a format string with `{what}`.
+
+| flag | levers it gates |
+|---|---|
+| `can_send` + `can_read_screen` | dispatch, answer a question, post-merge close-out, new work item, run a skill, library send (the daemon reads the input box before typing so it never clobbers a half-typed draft) |
+| `can_focus` | Focus (buttons, the `F` key, the palette, the Focus button on a toast) |
+| `can_open` | new tab or pane next to a row |
+| `can_read_screen` | also the Codex approval screen probe |
+| `can_follow` | terminal sync (Follow): the adapter marks the focused row with `selected` |
+| `has_groups` | informational: rows land in the ungrouped hall |
 
 ### Skeleton
 
@@ -285,7 +331,8 @@ class WeztermAdapter:
 Register it with one line in `REGISTRY` in `adapters/terminal/__init__.py`:
 
 ```python
-REGISTRY = {"cmux": CmuxAdapter, "iterm2": ITerm2Adapter, "tmux": TmuxAdapter, "wezterm": WeztermAdapter}
+REGISTRY = {"cmux": CmuxAdapter, "iterm2": ITerm2Adapter, "tmux": TmuxAdapter, "wezterm": WeztermAdapter,
+            "none": NoTerminalAdapter}  # keep "none" last: auto-detect picks a running terminal, else it
 ```
 
 or, from a separate package, with an entry point (no change to Shufler itself):

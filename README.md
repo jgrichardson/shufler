@@ -21,12 +21,12 @@ Shufler reads your terminal sessions, your agent transcripts and your GitHub pul
 
 ## Quickstart
 
-Beta (v0.2.0, pre-1.0), macOS, with cmux, iTerm2 or tmux. You need [uv](https://docs.astral.sh/uv/), [Bun](https://bun.sh), the [GitHub CLI](https://cli.github.com) and Claude Code or the Codex CLI. Full steps are in [Install](#install).
+Beta (v0.3.0, pre-1.0), macOS, any terminal (cmux, iTerm2 and tmux get the most). You need the [GitHub CLI](https://cli.github.com) and Claude Code or the Codex CLI. Other ways to install are in [Install](#install).
 
 ```bash
-git clone https://github.com/jgrichardson/shufler.git && cd shufler
-bin/shufler setup        # writes ~/.config/shufler/config.toml; then set scm.repo in it
-(cd web && bun install && bun run build) && bin/shufler start   # open http://127.0.0.1:4700
+brew install jgrichardson/shufler/shufler   # or: pipx install shufler, or: uv tool install shufler
+shufler setup            # writes ~/.config/shufler/config.toml; then set scm.repo in it
+shufler start            # open http://127.0.0.1:4700
 ```
 
 ## Why this exists
@@ -190,15 +190,16 @@ Toggle islands, sessions, PRs, conflicts, red alerts, tethers and beams, and cho
 
 ### Skins
 
-Five skins ship with the app. Switch live from the top bar or Settings, or write your own (see [`docs/SKINS.md`](docs/SKINS.md)).
+Six skins ship with the app. Switch live from the top bar or Settings, or write your own (see [`docs/SKINS.md`](docs/SKINS.md)).
 
 - **Starship**, the default: a sleek station in orbit, with lacquered hull modules, graphite decks and ice-blue light over a planet.
 - **Factory**: the original factory in the sky, with grass islands, pastel workshops and a warehouse under a quiet horizon.
 - **Sky Islands**: floating rock islands at dusk, with stone towers, plank bridges and rail cars over a sea of clouds.
 - **Theme Park**: a park at golden hour or under string lights, with coaster track for rows, ride stations for stages and a gift shop for shipped work.
 - **Casino**: a card room, with felt tables for rows, playing cards for work items, slot machines for sessions and a cashier for shipped work.
+- **Command Post**: a field base on a living map, with compounds for rows, command tents for sessions, supply convoys for work items and a depot with a helipad for shipped work. Logistics and ops only.
 
-<img src="docs/images/features/skins-grid.png" width="100%" alt="All five skins side by side, dark on the top row and light on the bottom: Starship, Factory, Sky Islands, Theme Park and Casino">
+<img src="docs/images/features/skins-grid.png" width="100%" alt="All six skins side by side, dark on the top row and light on the bottom: Starship, Factory, Sky Islands, Theme Park, Casino and Command Post">
 
 <img src="docs/images/gifs/skins.gif" width="820" alt="Switching skins live from Starship to Factory, Sky Islands, Theme Park, Casino and back">
 
@@ -218,6 +219,10 @@ Press `?` for every shortcut. See [Keyboard shortcuts](#keyboard-shortcuts) belo
 
 A drawer of local shells, for a console you want next to the scene. At most six, closed after two hours idle.
 
+### Agent access (MCP)
+
+`shufler mcp` (`bin/shufler mcp` in a clone) is an MCP server for Claude Code and Codex, so your agents can ask Shufler what is running: `status`, `needs_you`, `get_pr`, `read_session` and `list_work_items`, all read-only. An opt-in second tier lets an agent preview a prompt or an answer for another session and send it only through a separate confirm call. `shufler mcp --print-config` prints the setup lines. See [`docs/MCP.md`](docs/MCP.md).
+
 ## How is this different?
 
 Several good tools already help you run many agents. Pick the one that fits how you work.
@@ -228,7 +233,7 @@ Several good tools already help you run many agents. Pick the one that fits how 
 
 Shufler sits next to whichever of these you use and adds a different view:
 
-- Claude Code and Codex sessions in the same scene, from cmux, iTerm2 or tmux. It does not start or own your sessions.
+- Claude Code and Codex sessions in the same scene, from cmux, iTerm2 or tmux, or from any terminal in no-terminal mode. It does not start or own your sessions.
 - Pull requests and their CI, review and merge state, shown moving through stages beside the session that owns them.
 - One "your move" list across sessions and PRs, and a click that focuses the real terminal tab.
 
@@ -236,12 +241,12 @@ The trade-offs: it is a browser app plus a local daemon, macOS only for now, Git
 
 ## Status
 
-Shufler is early beta software, version 0.2.0 (pre-1.0). It was built for one developer's setup and is being opened up.
+Shufler is early beta software, version 0.3.0 (pre-1.0). It was built for one developer's setup and is being opened up.
 
-- It is macOS first. Terminals: cmux, iTerm2 and tmux (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
+- It is macOS first. Terminals: cmux, iTerm2 and tmux, plus a no-terminal mode that works with any other terminal (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
 - Agent harnesses: Claude Code and the OpenAI Codex CLI, mixed freely (see [`docs/AGENTS.md`](docs/AGENTS.md)).
 - The only supported source control host is GitHub, through the `gh` CLI.
-- v0.2.0 adds the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md). Install from a clone of the repo.
+- v0.3.0 adds packaged installs (Homebrew from the project's own tap, `pipx` or `uv tool` from a release wheel, a one-line installer; see [Install](#install)), no-terminal mode with greyed-out levers, and an MCP server for your agents. It is on PyPI as `shufler` and in the project's own Homebrew tap. v0.2.0 added the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md).
 - The optional integrations (a reviewer bot, work item sources, custom commands) talk to your tools through commands you configure. They are all off by default.
 
 See [Support matrix](#support-matrix) for what is planned.
@@ -250,18 +255,52 @@ See [Support matrix](#support-matrix) for what is planned.
 
 | Needs | Version | Notes |
 |---|---|---|
-| macOS | recent | `bin/shufler` uses `launchctl`, `lsof` and `ps` |
-| A terminal | any recent | [cmux](https://github.com/manaflow-ai/cmux), iTerm2 or tmux. Its workspaces, tabs or windows become rows. `bin/shufler setup` picks one |
-| [uv](https://docs.astral.sh/uv/) | any recent | Installs Python and the daemon's dependencies |
-| Python | 3.11 or newer | uv fetches it for you |
-| [Bun](https://bun.sh) | any recent | Builds and runs the web app. The lockfile is `bun.lock` |
-| Node | 18 or newer | Needed by the web toolchain (Vite 5, Vitest 2) |
+| macOS | recent | `shufler` uses `launchctl`, `lsof` and `ps` |
+| A terminal | any recent | [cmux](https://github.com/manaflow-ai/cmux), iTerm2 or tmux. Its workspaces, tabs or windows become rows. `shufler setup` picks one. Any other terminal works in no-terminal mode (`none`): rows come from the running sessions, and sending, answering and Focus are off |
+| [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io) | any recent | Installs the `shufler` command. Homebrew needs neither |
+| Python | 3.11 or newer | uv fetches it for you; Homebrew brings its own |
+| [Bun](https://bun.sh) | any recent | From source only: builds the web app. The lockfile is `bun.lock`. Packaged installs carry a built copy |
+| Node | 18 or newer | From source only: needed by the web toolchain (Vite 5, Vitest 2) |
 | [GitHub CLI](https://cli.github.com) | any recent | Run `gh auth login` first. Needed for PR data |
 | Claude Code | any recent | Sessions run in your terminal. Transcripts are read from `~/.claude/projects`. You need Claude Code, the Codex CLI or both |
 | [Codex CLI](https://github.com/openai/codex) | any recent | Codex sessions get rows too. Transcripts are read from `~/.codex/sessions`. Picked up automatically when installed; `[agents] enabled = ["codex"]` runs Codex alone |
 | A modern browser | WebGL 2 | Chrome is what the author uses |
 
 ## Install
+
+Each install gives you a `shufler` command. The packaged ones (Homebrew, `pipx`, `uv tool`, the one-liner) carry a built copy of the web app, so they need no Bun, Node or clone. From v0.3.0 the package is on PyPI as `shufler`, the formula is in the project's own tap, and the wheel is also attached to each GitHub release. It is not in Homebrew core.
+
+**One line** (macOS). It checks for Python, uv or pipx, installs the latest release wheel, then runs `shufler setup`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jgrichardson/shufler/main/install.sh | sh
+```
+
+Running it again upgrades in place. It never uses sudo and never starts the daemon; read [`install.sh`](install.sh) first if you like. `SHUFLER_PACKAGE=v0.3.0` pins a release, `SHUFLER_INSTALLER=pipx` picks pipx over uv, and `SHUFLER_NO_SETUP=1` skips setup.
+
+**Homebrew**, from the project's tap:
+
+```bash
+brew tap jgrichardson/shufler
+brew install shufler
+```
+
+**pipx or uv**, from PyPI:
+
+```bash
+pipx install shufler
+uv tool install shufler
+```
+
+Then, for any of those:
+
+```bash
+shufler setup           # writes ~/.config/shufler/config.toml and picks your terminal
+$EDITOR ~/.config/shufler/config.toml   # set scm.repo, at least
+shufler start
+```
+
+**From source**, for development or the newest code. Here the command is `bin/shufler`, which adds `dev` and `test`:
 
 ```bash
 git clone https://github.com/jgrichardson/shufler.git
@@ -276,16 +315,18 @@ bin/shufler start
 
 Open http://127.0.0.1:4700. The status bar at the bottom left should say **Live**.
 
-`bin/shufler status` shows the process, the health check and the age of every data source. If a source is failing, it says why.
+`shufler status` shows the process, the health check and the age of every data source. If a source is failing, it says why.
 
-With cmux, run `bin/shufler start` from a shell inside a cmux workspace. cmux only accepts connections from processes it started, so a daemon started anywhere else shows no rows and `status` reports the `cmux` source as OFF.
+With cmux, run `shufler start` from a shell inside a cmux workspace. cmux only accepts connections from processes it started, so a daemon started anywhere else shows no rows and `status` reports the `cmux` source as OFF.
 
 For the same reason, the login item does not work with cmux yet:
 
 ```bash
-bin/shufler install      # launchd agent: RunAtLoad and KeepAlive (cannot reach cmux today)
-bin/shufler uninstall    # remove it
+shufler install          # launchd agent: RunAtLoad and KeepAlive (cannot reach cmux today)
+shufler uninstall        # remove it
 ```
+
+With Homebrew, `brew services start shufler` does the same job.
 
 ### Try it without any setup
 
@@ -323,13 +364,14 @@ Everything machine-specific lives in one TOML file. The daemon looks for it in t
 |---|---|---|
 | `[app] port` | `4700` | Port the daemon listens on. It always binds to `127.0.0.1` |
 | `[app] owner_aliases` | `["me"]` | Names in ledger "Ball" cells that mean you |
-| `[terminal] kind` | `cmux` | `cmux`, `iterm2` or `tmux`. Each has its own section (`[cmux] bin`, ...) |
+| `[terminal] kind` | `auto` | `cmux`, `iterm2`, `tmux`, `none` or `auto`. Each terminal has its own section (`[cmux] bin`, ...). `none` works with any terminal: one row per running session, with the levers that need a terminal greyed out. `auto` picks the first terminal running, else `none` (an installed terminal that is not running does not count); it is decided once at daemon start, so set `kind` explicitly if the daemon starts at login before your terminal |
 | `[terminal] command_titles` | empty | Workspace titles that get the "command" domain (your control workspaces) |
 | `[terminal] utility` | empty | Workspace titles that get no row |
 | `[agents] enabled` | `"auto"` | Agent harnesses to watch: `["claude", "codex"]`, or `"auto"` for Claude Code plus every installed harness. See [`docs/AGENTS.md`](docs/AGENTS.md) |
 | `[agent] adapter` | `claude-code` | Claude Code adapter settings. Only `claude-code` exists |
 | `[[agent.accounts]]` | one personal account | One entry per Claude Code config directory: `projects_dir`, `claude_json`, `settings`, `usage_cache` |
 | `[codex]` | `~/.codex` | Codex CLI: `home` (where `sessions/` lives, or `$CODEX_HOME`) and `bin` |
+| `[mcp] allow_dispatch` | `false` | Offer the MCP dispatch tools (`send_prompt`, `answer_question`, `confirm_dispatch`). See [`docs/MCP.md`](docs/MCP.md) |
 | `[scm] repo` | empty | `owner/name` of your GitHub repo, such as `your-org/your-repo`. Empty turns PR sources off |
 | `[scm] deploy_workflow` | empty | Workflow file that deploys to production. Empty turns deploy tracking off |
 | `[scm] deploy_branch` | `main` | Branch whose merges count as deployable |
@@ -349,7 +391,7 @@ Everything machine-specific lives in one TOML file. The daemon looks for it in t
 | `[world] fix_pattern` | `data\|backfill\|migrat\|repair` | Regex on PR titles and branches that marks a fix needing a post-merge step |
 | `[[domain]]` | sample set | Row colours and the aliases that place a session or PR in a domain |
 
-### Domains
+### Domain settings
 
 A domain groups rows and work by area, and gives them a colour. A `[[domain]]` table has an `id`, `label`, `code`, `color` and a list of `aliases`. Aliases match lower-case words in workspace titles, PR title scopes, branch names and ledger areas. The ones in the example are samples. Replace them with your own areas. Anything that matches nothing lands in `fallback_domain`.
 
@@ -429,7 +471,7 @@ Global commands appear in the World panel, the palette and the command drawer (`
 | `~/.cache/shufler/` | Cache, phase timers, pid file |
 | `~/.local/share/shufler/history.sqlite` | History |
 | `~/Library/Logs/shufler.log` | Daemon log |
-| `actions.jsonl` in the repo root | A log of every action sent (never keystrokes) |
+| `actions.jsonl` in the repo root (from source) or `~/.local/share/shufler/` (packaged) | A log of every action sent (never keystrokes) |
 
 The daemon uses port 4700. The Vite dev server uses 5173.
 
@@ -460,11 +502,11 @@ Every lever opens one confirm dialog with the exact command or URL. Focus, Open 
 
 If a session already has text typed in its input box, a dispatch is refused and shows you the draft.
 
-### Layers
+### Layer bar
 
 The bar under the top bar toggles Islands, Sessions, PRs, Conflicts, Needs me, Tethers and Beams, and sets Labels to Auto, All or None; the Horizon button at its end turns the horizon view on and off. `0` keeps only islands, pods and needs-me. Your choices are saved in the browser.
 
-### Context library
+### Using the context library
 
 Open it from the top bar or with `L`. An item is a reference to files or folders by path. Nothing is copied.
 
@@ -481,7 +523,7 @@ A grant can be pinned or once, and targets one session, a whole domain or everyt
 
 ### Skins and themes
 
-Starship is the default. Factory, Sky Islands, Theme Park and Casino are the others. Switch in the top bar, in **Settings → Appearance**, or with `?skin=<id>` in the URL. Dark, light and system themes are in Settings. You can import a JSON recolour or write a code skin. See [`docs/SKINS.md`](docs/SKINS.md).
+Starship is the default. Factory, Sky Islands, Theme Park, Casino and Command Post are the others. Switch in the top bar, in **Settings → Appearance**, or with `?skin=<id>` in the URL. Dark, light and system themes are in Settings. You can import a JSON recolour or write a code skin. See [`docs/SKINS.md`](docs/SKINS.md).
 
 | | Dark | Light |
 |---|---|---|
@@ -490,12 +532,17 @@ Starship is the default. Factory, Sky Islands, Theme Park and Casino are the oth
 | **Sky Islands** | <img src="docs/images/skyislands-dark.png" alt="Sky Islands skin, dark theme"> | <img src="docs/images/skyislands-light.png" alt="Sky Islands skin, light theme"> |
 | **Theme Park** | <img src="docs/images/themepark-dark.png" alt="Theme Park skin, dark theme"> | <img src="docs/images/themepark-light.png" alt="Theme Park skin, light theme"> |
 | **Casino** | <img src="docs/images/casino-dark.png" alt="Casino skin, dark theme"> | <img src="docs/images/casino-light.png" alt="Casino skin, light theme"> |
+| **Command Post** | <img src="docs/images/commandpost-dark.png" alt="Command Post skin, dark theme"> | <img src="docs/images/commandpost-light.png" alt="Command Post skin, light theme"> |
 
 ![Settings drawer with the skin picker and theme switch](docs/images/settings-skins.png)
 
 ### Follow terminal
 
 When on, which is the default, the scene selects and flies to whichever workspace you focus in your terminal. It pauses for 20 seconds after you pick something yourself. Settings → General has options for this and for reduced motion.
+
+### Without a supported terminal
+
+Use Shufler with any terminal (Terminal.app, Ghostty, WezTerm, an editor's terminal, ssh) by picking `none` in `bin/shufler setup`, or let `auto` fall back to it when no supported terminal is found. Each running `claude` or `codex` session becomes a row, with its state, model, tokens, questions and PRs as usual; the row goes when the session exits. What needs a terminal is greyed out, with the reason in the tooltip: sending a prompt, answering a question, running a skill, sending library context, Focus, new tabs and terminal sync. Answer in the session's own window; the scene picks the answer up. Every adapter declares what it can do (`capabilities.terminal_caps` in the snapshot), so a terminal that cannot focus, say, only greys out Focus.
 
 ### Keyboard shortcuts
 
@@ -525,13 +572,13 @@ Press `?` in the app for the full list.
 | Area | Supported | Planned |
 |---|---|---|
 | OS | macOS | Linux (systemd user unit for autostart) |
-| Terminal | cmux, iTerm2, tmux | WezTerm |
+| Terminal | cmux, iTerm2, tmux; any other terminal in no-terminal mode (watch only) | WezTerm |
 | Agent harness | Claude Code, Codex CLI | Gemini CLI, Aider, OpenCode, other harnesses and accounts |
 | Source control | GitHub through `gh` | |
 | External review | A reviewer bot, by GitHub login and an optional watcher command | |
 | Work items | Intake records, area ledgers, a board CLI (all optional) | |
 | Custom commands | Any argv you configure, with a form and a confirm step | |
-| Skins | Starship, Factory, Sky Islands, Theme Park, Casino, JSON recolours, code skins | |
+| Skins | Starship, Factory, Sky Islands, Theme Park, Casino, Command Post, JSON recolours, code skins | |
 
 Also planned: `restart`, `logs` and `doctor` commands, and starting a new session from the UI with harness, account, model and effort.
 
@@ -544,6 +591,9 @@ Also planned: `restart`, `logs` and `doctor` commands, and starting a new sessio
 - **Actions.** Every action is validated against current state and previewed. Commands run as argument lists with a 30-second timeout, never through a shell. Each action is logged.
 - **Never-do guard.** The daemon refuses `reset --hard`, force pushes, worktree removal, process kills, chat posts and outbound sends, in commands and in prompts it would send to a session. Custom commands go through the same guard. Re-triggering the reviewer bot posts a PR comment (or runs your command), and its preview says so.
 - **Custom commands** run exactly the argv you configured. Shufler cannot tell a read from a write, so only configure commands you trust, and mark production ones `prod = true`.
+- **Processes.** Every 10 seconds (3 in no-terminal mode) the daemon lists running `claude` and `codex` processes with `ps`, and reads each new one's working directory (`lsof`) and terminal id from its environment (`ps -E`) to match it to a row. Only those fields are kept. Turn it off with `[terminal] processes = false`, except in no-terminal mode, where the processes are the rows.
+- **Levers the terminal cannot pull** (no-terminal mode, or a terminal adapter without that capability) are greyed out with the reason in their tooltip, and the daemon refuses them if called anyway. Nothing is typed, focused or opened.
+- **Agent access (MCP).** `shufler mcp` gives your agents the floor's facts and, through `read_session`, other sessions' recent messages. Text from one session can carry instructions aimed at another (prompt injection), so treat it as data. The dispatch tools that type into other sessions are off unless you set `[mcp] allow_dispatch = true`; they preview first, send only on a second `confirm_dispatch` call, refuse never-do text, control characters and a session prompting itself, and are rate-limited. Keep `confirm_dispatch` off your harness's auto-allow list so you approve each send. The threat model is in [`docs/MCP.md`](docs/MCP.md).
 - **Built-in terminals** are real shells on your machine: at most 6, closed after 2 hours idle. Keystrokes are never logged. Presets type a command but never press Enter.
 
 Do not expose port 4700 beyond your machine.
@@ -563,7 +613,7 @@ Do not expose port 4700 beyond your machine.
                  GET /api/snapshot   /ws   POST /api/actions
                             |
         web: Vite + React + react-three-fiber + zustand
-        skins (Starship, Factory, Sky Islands, Theme Park, Casino) draw the scene
+        skins (Starship, Factory, Sky Islands, Theme Park, Casino, Command Post) draw the scene
 ```
 
 - **Daemon** (`daemon/shufler/`). Python 3.11 or newer. Collectors poll each source on its own interval in worker threads. One failing source shows as an error on that source and never stops the rest. The snapshot is built by pure functions, so tests use fixtures. The WebSocket sends the full snapshot on connect, then on every change.
@@ -573,18 +623,22 @@ Do not expose port 4700 beyond your machine.
 
 ## CLI reference
 
+A packaged install runs these as `shufler <command>`; from a clone they are `bin/shufler <command>`. `dev` and `test` exist only in a clone, and `serve` only in the packaged command.
+
 | Command | Does |
 |---|---|
 | `bin/shufler init [--force]` | Copy the example config to `~/.config/shufler/config.toml`. Will not overwrite without `--force` |
 | `bin/shufler setup` | Pick your terminal and its options, and the agent harnesses, and write them to the config (`--yes`, `--terminal <kind>`, `--agents auto\|claude,codex`) |
-| `bin/shufler start` | Run the daemon in the background (or through launchd if installed) and wait until healthy. It serves `web/dist` |
+| `bin/shufler start` | Run the daemon in the background (or through launchd if installed) and wait until healthy. It serves `web/dist`, or the copy inside the package |
 | `bin/shufler stop` | Stop the daemon |
 | `bin/shufler status` | Show the process, health, the agent harnesses watched, and each source's age and error |
 | `bin/shufler dev` | Daemon with `--reload` plus `bun run dev`. Allows the `:5173` origin |
 | `bin/shufler install` | Install and load a launchd agent that starts at login |
 | `bin/shufler uninstall` | Unload and remove it |
+| `shufler serve [--port N]` | Run the daemon in the foreground, for launchd and `brew services` |
 | `bin/shufler test [args]` | Run the daemon tests with pytest |
 | `bin/shufler library ...` | Manage the context library: `add`, `list`, `grant`, `send` |
+| `bin/shufler mcp` | Run the MCP server on stdio for your agents. `--print-config` prints the Claude Code and Codex setup. See [`docs/MCP.md`](docs/MCP.md) |
 | `bin/shufler version` | Print the version |
 
 ## Development
@@ -595,6 +649,7 @@ bin/shufler dev                           # daemon with reload + Vite at http://
 cd daemon && uv run pytest -q                # daemon tests (or: bin/shufler test)
 cd web && npx tsc --noEmit && npx vitest run # typecheck and web tests
 cd web && bun run build                      # typecheck, then build web/dist
+packaging/release.sh                         # build the release sdist, wheel and Homebrew formula into dist/
 ```
 
 The web app does not rebuild by itself under `start`. After changing `web/`, run `bun run build` again.
@@ -605,14 +660,14 @@ Shufler is built to be extended. Every outside tool it talks to sits behind a sm
 
 | Extension point | Works today | Planned or wanted | How to add one |
 |---|---|---|---|
-| **Terminals** | cmux, iTerm2, tmux | Ghostty, WezTerm, Kitty, Warp, Terminal.app, Linux and Windows terminals | One adapter file plus a registry entry, or a plug-in package. See [`docs/TERMINALS.md`](docs/TERMINALS.md) |
+| **Terminals** | cmux, iTerm2, tmux; no-terminal mode for any other | Ghostty, WezTerm, Kitty, Warp, Terminal.app, Linux and Windows terminals | One adapter file plus a registry entry, or a plug-in package. See [`docs/TERMINALS.md`](docs/TERMINALS.md) |
 | **Agent harnesses** | Claude Code, Codex CLI | Gemini CLI, Aider, OpenCode and other coding agents | An agent adapter under `daemon/shufler/adapters/agent/` that finds sessions and reads transcripts, or a plug-in package. See [`docs/AGENTS.md`](docs/AGENTS.md) |
-| **Skins** | Starship, Factory, Sky Islands, Theme Park, Casino | Community skins | A JSON recolour, or a code skin folder. See [`docs/SKINS.md`](docs/SKINS.md) |
+| **Skins** | Starship, Factory, Sky Islands, Theme Park, Casino, Command Post | Community skins | A JSON recolour, or a code skin folder. See [`docs/SKINS.md`](docs/SKINS.md) |
 | **Code hosts and CI** | GitHub (`gh`) | GitLab, Bitbucket, other CI systems | An SCM adapter under `daemon/shufler/adapters/scm/`. Guide to come |
 | **Review bots** | Any bot that comments on PRs, set up in `[reviewer]` | Ready-made presets for common review bots | Config only today |
 | **Trackers and boards** | Intake files, a board CLI, area ledgers | Linear, Jira, GitHub Issues | Tracker adapters under `daemon/shufler/adapters/tracker/`. Guide to come |
 | **Custom commands** | Any command you define in `[[commands]]` | Shared command packs | Config only |
-| **Agent access (MCP)** | Not yet | An MCP server so your agents can ask Shufler what is running and what is waiting on you | Planned |
+| **Agent access (MCP)** | Read-only tools, plus opt-in dispatch with a confirm step | A foreman agent that watches the floor | A tool in `daemon/shufler/mcp_server.py`, built on the daemon's HTTP API. See [`docs/MCP.md`](docs/MCP.md) |
 
 To add an adapter today: put a module beside the existing ones, implement its Protocol, register it, add its keys to `daemon/config.example.toml`, and write tests against fixture output. See [`CONTRIBUTING.md`](CONTRIBUTING.md). If you want to build one of the planned items, open an issue first so we can agree on the shape.
 
@@ -621,13 +676,11 @@ To add an adapter today: put a module beside the existing ones, implement its Pr
 Ideas that are not built yet. Some are close, some are a wish list. If one matters to you, open an issue or pick it up.
 
 **Agents**
-- **MCP server.** Let your agents ask Shufler what is running, what is waiting on you, and whether a PR is green, through read-only tools such as `status`, `needs_you`, `get_pr` and `read_session`. A "foreman" agent could watch the whole floor for you. A second, opt-in tier would let an agent dispatch a prompt or answer a question in another session, with the same preview step the app uses.
+- **A foreman agent.** One agent that watches the whole floor through the MCP tools and nudges sessions that are stuck or waiting on something, with every nudge still going through the confirm step. Not built yet.
 - **More agent harnesses:** Gemini CLI, Aider, OpenCode.
 
 **Terminals**
-- **Works in any terminal.** A mode that needs no supported terminal: rows come straight from running agent sessions, and only send-and-focus are disabled.
 - **More terminals:** Ghostty, WezTerm, Kitty, Warp, Terminal.app, plus Linux and Windows.
-- **Greyed-out levers.** Buttons a terminal cannot support appear disabled rather than returning an error.
 - **Autostart for cmux users.** cmux only accepts connections from programs started inside it, so start-at-login does not reach it yet.
 
 **The world**
@@ -638,9 +691,6 @@ Ideas that are not built yet. Some are close, some are a wish list. If one matte
 - GitLab and Bitbucket, and CI systems beyond GitHub checks.
 - Linear, Jira and GitHub Issues as work sources.
 - Presets for common PR review bots.
-
-**Packaging**
-- Install with Homebrew or `pipx`, and a one-line setup.
 
 ## Contributing
 

@@ -136,9 +136,23 @@ export interface CommandDef {
   inputs: CommandInput[];
 }
 
+/** What the active terminal adapter can do (daemon adapters/terminal CAPABILITY_FLAGS). */
+export interface TerminalCaps {
+  can_send?: boolean;
+  can_focus?: boolean;
+  can_read_screen?: boolean;
+  can_open?: boolean;
+  has_groups?: boolean;
+  /** The terminal reports its focused row, so Follow works. */
+  can_follow?: boolean;
+}
+
 export interface Capabilities {
   product?: string;
+  /** cmux, iterm2, tmux, or none (rows from running sessions, no terminal levers). */
   terminal?: string | null;
+  /** Absent on older daemons: every flag counts as on. */
+  terminal_caps?: TerminalCaps;
   agent?: string | null;
   /** Agent harnesses the daemon watches, e.g. ["claude", "codex"]. */
   agents?: string[];

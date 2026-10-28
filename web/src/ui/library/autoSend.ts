@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useWorld } from '../../store';
 import { usePrefs } from '../prefs';
 import { executeAction } from '../requestAction';
+import { leverOffNow } from '../../lib/terminalCaps';
 
 /*
  * Settings → "Auto-send pinned context to new sessions" (off by default). When on, owed items go out
@@ -14,7 +15,7 @@ let busy = false;
 export function useAutoSendContext() {
   useEffect(() => {
     const check = async () => {
-      if (busy || !usePrefs.getState().autoSendPinned) return;
+      if (busy || !usePrefs.getState().autoSendPinned || leverOffNow('library_send')) return; // the terminal cannot type: stay quiet
       const snap = useWorld.getState().snapshot;
       for (const [sid, ids] of Object.entries(snap?.library?.owed ?? {})) {
         const st = snap?.stations.find((s) => s.id === sid);

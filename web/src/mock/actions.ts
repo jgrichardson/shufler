@@ -1,5 +1,6 @@
 import type { ActionName, ActionParams, ActionPreview, ActionResult, ConfirmLevel } from '../types';
 import { useWorld } from '../store';
+import { leverOffNow } from '../lib/terminalCaps';
 import { composeFor, recordSend } from './library';
 import { allCommands, validateValues, type CommandValues } from '../ui/commands';
 
@@ -19,7 +20,8 @@ export function mockPreview(action: ActionName, p: ActionParams): ActionPreview 
   const facts: Record<string, unknown> = {};
   let command: string | null = null;
   let url: string | null = null;
-  let error: string | null = null;
+  let error: string | null = leverOffNow(action); // the daemon refuses a lever the terminal lacks; so does the mock
+  if (error) return { command: null, url: null, warnings, error, facts, confirm: CONFIRM[action] ?? 'tap' };
   switch (action) {
     case 'focus':
       command = `${CMUX} select-workspace --workspace ${p.station_id}`;

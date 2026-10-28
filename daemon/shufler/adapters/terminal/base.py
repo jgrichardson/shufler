@@ -10,8 +10,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # Capability flags every adapter declares. A lever whose flag is False is refused with a plain message
-# instead of running a command that cannot work.
-CAPABILITY_FLAGS = ("can_send", "can_focus", "can_read_screen", "can_open", "has_groups")
+# instead of running a command that cannot work, and the web greys it out (snapshot `capabilities.terminal_caps`).
+# `can_follow`: the adapter marks the focused row (`selected`), which drives Follow in the web.
+CAPABILITY_FLAGS = ("can_send", "can_focus", "can_read_screen", "can_open", "has_groups", "can_follow")
 ALL_CAPS = {f: True for f in CAPABILITY_FLAGS}
 
 

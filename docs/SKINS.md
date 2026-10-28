@@ -4,7 +4,7 @@ A skin decides how Shufler looks. It does not decide what anything means. Positi
 travel, status lamps, sky beams, selection rings, the focus grey-out and the Pipeline fade all stay in
 the core, so every skin behaves the same and a skin bug cannot hide a red session.
 
-Five skins ship with the app: **Starship** (the default), **Factory**, **Sky Islands**, **Theme Park** and **Casino**. Users switch between them in
+Six skins ship with the app: **Starship** (the default), **Factory**, **Sky Islands**, **Theme Park**, **Casino** and **Command Post**. Users switch between them in
 **Settings → Appearance** or with `?skin=<id>` in the URL. The choice is kept in the browser.
 
 | | Dark | Light |
@@ -14,6 +14,7 @@ Five skins ship with the app: **Starship** (the default), **Factory**, **Sky Isl
 | **Sky Islands** | <img src="images/skyislands-dark.png" alt="Sky Islands skin, dark theme"> | <img src="images/skyislands-light.png" alt="Sky Islands skin, light theme"> |
 | **Theme Park** | <img src="images/themepark-dark.png" alt="Theme Park skin, dark theme"> | <img src="images/themepark-light.png" alt="Theme Park skin, light theme"> |
 | **Casino** | <img src="images/casino-dark.png" alt="Casino skin, dark theme"> | <img src="images/casino-light.png" alt="Casino skin, light theme"> |
+| **Command Post** | <img src="images/commandpost-dark.png" alt="Command Post skin, dark theme"> | <img src="images/commandpost-light.png" alt="Command Post skin, light theme"> |
 
 <img src="images/gifs/skins.gif" width="820" alt="Switching skins live from Starship to Factory, Sky Islands, Theme Park, Casino and back">
 
@@ -34,6 +35,20 @@ machine), and shipped work is cashed out as chip stacks at the cashier's cage. L
 salon; dark mode is the card room at night under the "SHUFLER CASINO / THE HOUSE ALWAYS SHIPS" sign. A card
 whose ball is with you turns into a red joker, face up even in the overview, under the usual red beam and
 ring. Assets are CC0 and listed in `web/src/skins/casino/ASSETS.md`.
+
+**Command Post** (`?skin=commandpost`) turns the board into a field base on a topographic map. It is
+logistics and ops only: no weapons, no combat, no real insignia or flags. Each row is a compound on a raised
+plateau with its supply road on a causeway, each Claude session is a command tent and each Codex session a
+container cabin with a roof dish, and work items are supply vehicles (pull requests are trucks, issues
+buggies, data fixes tankers, plans motorcycles with a sidecar, docs vans). In the overview they lie flat as
+tabletop counters with a pictogram. Each stage column is a sector with a lettered board, the landmarks
+are field facilities (weather station, map room, engineer yard, proving ground, inspection bay, bridge
+checkpoint, airstrip), the library is a signals hut with a radar dish, and shipped work is stored as
+crates in Quonset huts beside a helipad. Light mode is "Daylight Exercise" over a sand table; dark mode is
+"Night Watch" under stars and floodlights. Status lamps always sit in a dark bezel and phase accents on a
+dark ops-board strip, because neither reads on sand. A vehicle whose ball is with you turns into a red YOUR
+MOVE chit, under the usual red beam and ring. Everything is procedural (no downloaded assets); palette keys
+are in `web/src/skins/commandpost/palette.ts`.
 
 ![The skin picker in Settings → Appearance](images/settings-skins.png)
 

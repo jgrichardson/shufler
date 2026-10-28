@@ -14,8 +14,10 @@ owner_aliases = ["me"]                              # names in ledger "Ball" cel
 # cache_dir = "~/.cache/shufler"
 
 # ---------------------------------------------------------------- terminal
-# Which terminal hosts your agent sessions: "cmux", "iterm2", "tmux", or "auto" (the first one running, else the
-# first one installed). `shufler setup` writes this for you. docs/TERMINALS.md explains each mapping.
+# Which terminal hosts your agent sessions: "cmux", "iterm2", "tmux", "none", or "auto" (the first one running,
+# else "none"; resolved once at daemon start, so set a kind if the daemon starts before your terminal). "none" works with any terminal: one row per running claude or codex
+# session, read from ps, with sending, answering, Focus and new tabs off. `shufler setup` writes this for you.
+# docs/TERMINALS.md explains each mapping.
 [terminal]
 kind = "auto"
 # Workspace titles treated as the control room (they get the "command" domain).
@@ -25,6 +27,7 @@ command_titles = []
 utility = []
 # utility = ["SHARED"]
 # Read running agent processes (`claude`, `codex`) every 10 s (ps + lsof) to tell open sessions from closed ones.
+# With kind = "none" the processes are the rows, so they are always read (every 3 s) and this has no effect.
 processes = true
 
 [cmux]
@@ -318,6 +321,14 @@ hide = []
 # args_template = "{pr}"
 # placement = "pr"
 # pin = true
+
+# ---------------------------------------------------------------- MCP server
+# `shufler mcp` lets your agents ask Shufler what is running (read-only tools, always on). With
+# allow_dispatch = true it also offers send_prompt and answer_question, which preview a prompt to another session
+# and send it only through a second confirm_dispatch call. One agent can then steer another, so read the threat
+# model in docs/MCP.md before turning it on.
+[mcp]
+allow_dispatch = false
 
 # ---------------------------------------------------------------- world layout domains
 # One lane per domain, in this order. Aliases match lower-case tokens of workspace titles, PR title scopes

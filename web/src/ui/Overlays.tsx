@@ -10,6 +10,7 @@ import { useFocusTrap } from './focusTrap';
 import { useLibDrag } from './library/drag';
 import { PRODUCT_NAME, REPO_URL, REVIEWER_NAME, TAGLINE } from '../lib/brand';
 import { useTerminalName } from '../lib/terminalName';
+import { useFlagOff } from '../lib/terminalCaps';
 import { dispatch, toggleLibrary, useWorld, useItem, useStation } from '../store';
 import { BALL_COLOR, stationColor } from '../lib/colors';
 import { domainDef, PHASE_LABEL } from '../lib/domains';
@@ -76,7 +77,8 @@ function useCounts() {
 
 function FollowToggle() {
   const mode = usePrefs((s) => s.terminalFollow);
-  const on = mode !== 'off';
+  const off = useFlagOff('can_follow');
+  const on = mode !== 'off' && !off;
   const paused = useFollow((s) => s.pausedUntil);
   const toggle = useFollow((s) => s.toggle);
   const now = useClock();
@@ -86,9 +88,12 @@ function FollowToggle() {
       className={`follow${on ? ' on' : ''}`}
       role="switch"
       aria-checked={on}
+      disabled={!!off}
       onClick={toggle}
       title={
-        mode === 'mark'
+        off
+          ? off
+          : mode === 'mark'
           ? 'Terminal sync: the session you switch to in the terminal is marked here; the view stays as it is. More options in Settings.'
           : 'Terminal sync: the session you switch to in the terminal is selected here. Pauses after you pick something. More options in Settings.'
       }

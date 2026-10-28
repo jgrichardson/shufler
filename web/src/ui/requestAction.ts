@@ -7,6 +7,7 @@ import { usePulses } from '../scene/pulses';
 import { refreshLibrary } from './library/store';
 import { REVIEWER_NAME } from '../lib/brand';
 import { currentTerminalName, focusLabel } from '../lib/terminalName';
+import { leverOffNow } from '../lib/terminalCaps';
 
 export const ACTION_LABEL: Record<ActionName, string> = {
   focus: focusLabel('terminal'),
@@ -43,6 +44,12 @@ export function actionLabel(action: ActionName, terminal = currentTerminalName()
 const NO_CONFIRM = new Set<ActionName>(['focus', 'open_pr', 'open_preview', 'ack']);
 
 export async function executeAction(action: ActionName, params: ActionParams, label: string) {
+  const off = leverOffNow(action);
+  if (off) {
+    // a greyed-out lever reached by a shortcut, the palette or a toast button: say why, call nothing
+    toast(false, `${label} is off`, off);
+    return null;
+  }
   try {
     const result = await runAction(action, params);
     if (action === 'library_send' && result.ok) void refreshLibrary();
@@ -68,6 +75,11 @@ export async function executeAction(action: ActionName, params: ActionParams, la
  */
 export function requestAction(action: ActionName, params: ActionParams, label?: string) {
   const name = label ?? actionLabel(action);
+  const off = leverOffNow(action);
+  if (off) {
+    toast(false, `${name} is off`, off);
+    return;
+  }
   if (NO_CONFIRM.has(action)) {
     if ((action === 'open_pr' || action === 'open_preview') && typeof params.url === 'string') window.open(params.url, '_blank', 'noopener');
     void (async () => {
