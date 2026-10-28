@@ -1,6 +1,7 @@
 import type { Domain, Phase, Snapshot, Station, Workpiece, BallWho } from '../types';
 import { isClosed } from '../lib/derive';
 import { BAND_W, GATE_X, PHASES, domainDef, pipelineKey } from '../lib/domains';
+import type { TrackLoop } from './islands';
 
 export type Vec3 = [number, number, number];
 
@@ -75,8 +76,10 @@ export const LANDMARK = { back: 10.5, scale: 2.5, height: 7.6 } as const;
 export const LIBRARY = { x: -31, back: 4, scale: 2.5, radius: 11.5, height: 8.4 } as const;
 
 /** Where the library's pad sits: its ground point in world space, a little behind the landmark line. */
-export function libraryPos(layout: Pick<SceneLayout, 'bounds'>): Vec3 {
-  return [LIBRARY.x, SKY_Y - 0.7, layout.bounds.minZ - 2.4 - LANDMARK.back - LIBRARY.back];
+export function libraryPos(layout: Pick<SceneLayout, 'bounds'> & { frame?: SceneLayout['frame'] }): Vec3 {
+  const z = layout.bounds.minZ - 2.4 - LANDMARK.back - LIBRARY.back;
+  // big islands can reach further back than the rows; the library then steps back behind them
+  return [LIBRARY.x, SKY_Y - 0.7, layout.frame ? Math.min(z, layout.frame.minZ - LIBRARY.radius - 3) : z];
 }
 
 /** Centre x of a district band; pods snap to it. */
@@ -103,6 +106,8 @@ export interface IslandLayout {
   seed: number;
   stationIds: string[];
   isTower: boolean;
+  /** Big-island layout only: the loop of track this island carries (shared by every island). */
+  track?: TrackLoop;
 }
 
 export interface BuildingLayout {
@@ -114,6 +119,8 @@ export interface BuildingLayout {
   rotY: number;
   paletteIndex: number;
   slot: number;
+  /** Big-island layout only: the building stands on its own large island. */
+  big?: boolean;
 }
 
 export interface PodSlot {
@@ -129,6 +136,10 @@ export interface PodSlot {
   parked: boolean;
   /** Position in the Pipeline kanban; absent for parked items, which sink with their island. */
   pipePos?: Vec3;
+  /** Big-island layout only: heading along the island's track (radians about +y). */
+  rotY?: number;
+  /** Big-island layout only: the island loop the pod rides, where the island's track sits, and how far round the loop. */
+  track?: { loop: TrackLoop; origin: Vec3; s: number };
 }
 
 export interface PipeLayout {
@@ -150,6 +161,12 @@ export interface SceneLayout {
   dock: { center: Vec3; halfDepth: number; top: number };
   bounds: { minZ: number; maxZ: number };
   pipe: PipeLayout;
+  /** Set on the big-island layout; the grid leaves it out. */
+  mode?: 'islands';
+  /** Big-island layout: the islands' footprint, for the camera and the library. */
+  frame?: { minX: number; maxX: number; minZ: number; maxZ: number };
+  /** Big-island layout: the grid it was derived from (the boulevard still fades out from there). */
+  grid?: SceneLayout;
 }
 
 /** One row of the world: a cmux workspace, or the final Unowned row. */

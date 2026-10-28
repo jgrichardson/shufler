@@ -34,21 +34,29 @@ interface HorizonState {
   on: boolean;
   /** Bumps when the user turns the view on or off, so the rig flies in or out. `drop` leaves it alone. */
   seq: number;
+  /** True when the last bump was `reframe`: the view stays on and the rig re-frames it for a new layout. */
+  reframed: boolean;
   set: (on: boolean) => void;
   toggle: () => void;
   /** Another flight (a preset, Enter, N, R) took the camera; clear the flag without flying back. */
   drop: () => void;
+  /** The world layout changed (grid or big islands) while the view is on: stay on and re-frame it. */
+  reframe: () => void;
 }
 
 export const useHorizon = create<HorizonState>()((set, get) => ({
   on: initial(),
   seq: 0,
+  reframed: false,
   set: (on) => {
-    if (on !== get().on) set({ on, seq: get().seq + 1 });
+    if (on !== get().on) set({ on, seq: get().seq + 1, reframed: false });
   },
   toggle: () => get().set(!get().on),
   drop: () => {
     if (get().on) set({ on: false });
+  },
+  reframe: () => {
+    if (get().on) set({ seq: get().seq + 1, reframed: true });
   },
 }));
 

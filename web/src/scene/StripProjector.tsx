@@ -4,7 +4,11 @@ import * as THREE from 'three';
 import type { Phase } from '../types';
 import { PHASES, PHASE_LABEL, phaseTiny } from '../lib/domains';
 import { BAND_W, LANDMARK, SKY_Y, cellX, type SceneLayout } from './layout';
-import { morphK } from './morph';
+import { islandsK, morphK } from './morph';
+import { PANEL_FRACTION } from './CameraRig';
+
+/** Widest a tag gets in the big-island legend. */
+const LEGEND_TAG = 116;
 
 /** DOM cells of the district header strip, keyed by phase; positioned every frame below. */
 export const strip = { bar: null as HTMLElement | null, cells: new Map<Phase, HTMLElement>() };
@@ -67,6 +71,7 @@ export function StripProjector({ layout }: { layout: SceneLayout }) {
   useFrame(() => {
     const bar = strip.bar;
     if (!bar) return;
+    if (islandsK() > 0.5) return void legend(bar, size);
     const k = morphK();
     // city: just above the landmark tops; pipeline: the board's back edge at deck height
     const zCity = layout.bounds.minZ - 2.4 - LANDMARK.back;
@@ -99,25 +104,44 @@ export function StripProjector({ layout }: { layout: SceneLayout }) {
     const left = cells[0][0];
     const right = cells[cells.length - 1][0] + cells[cells.length - 1][1];
     bar.style.visibility = right < 0 || left > size.width ? 'hidden' : 'visible';
-    bar.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(y)}px, 0)`;
-    bar.style.width = `${Math.round(right - left)}px`;
-    const tags: StripTag[] = [];
-    PHASES.forEach((p, i) => {
-      const el = strip.cells.get(p);
-      if (!el) return;
-      // a small gap between tags so the landmarks show through between them
-      const cw = Math.max(0, Math.round(cells[i][1] - 6));
-      el.style.left = `${Math.round(cells[i][0] - left + 3)}px`;
-      el.style.width = `${cw}px`;
-      tags.push({ w: cw, label: PHASE_LABEL[p] ?? p, short: phaseTiny(p), n: Number(el.dataset.n ?? 0) });
-    });
-    // re-fit only when a width, count or the layout changed
-    const key = `${base}|${tags.map((t) => `${t.w}:${t.n}:${t.label}`).join(',')}`;
-    if (bar.dataset.fitKey === key) return;
-    bar.dataset.fitKey = key;
-    const [fit, px] = fitStrip(tags, base, family);
-    bar.dataset.fit = fit;
-    bar.style.setProperty('--fs', `${px}px`);
+    layTags(bar, cells, left, right, y, base);
   });
   return null;
+}
+
+/**
+ * Big islands have no columns to stand over: the strip becomes a fixed legend under the top bars,
+ * centred on the scene, naming each stage in the colour of its stop markers, with its count.
+ */
+function legend(bar: HTMLElement, size: { width: number; height: number }) {
+  const scene = size.width * (size.width > 900 ? 1 - PANEL_FRACTION : 1);
+  const w = Math.min(LEGEND_TAG, (scene - 48) / PHASES.length);
+  const left = Math.max(8, (scene - w * PHASES.length) / 2);
+  const cells = PHASES.map((_, i) => [left + i * w, w]);
+  bar.style.visibility = 'visible';
+  family ||= getComputedStyle(bar).fontFamily;
+  layTags(bar, cells, left, left + w * PHASES.length, TOP_MIN + 6, 12);
+}
+
+/** Places the strip and its tags over the given cells, then re-fits the tag layout when anything changed. */
+function layTags(bar: HTMLElement, cells: number[][], left: number, right: number, y: number, base: number) {
+  bar.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(y)}px, 0)`;
+  bar.style.width = `${Math.round(right - left)}px`;
+  const tags: StripTag[] = [];
+  PHASES.forEach((p, i) => {
+    const el = strip.cells.get(p);
+    if (!el) return;
+    // a small gap between tags so the landmarks show through between them
+    const cw = Math.max(0, Math.round(cells[i][1] - 6));
+    el.style.left = `${Math.round(cells[i][0] - left + 3)}px`;
+    el.style.width = `${cw}px`;
+    tags.push({ w: cw, label: PHASE_LABEL[p] ?? p, short: phaseTiny(p), n: Number(el.dataset.n ?? 0) });
+  });
+  // re-fit only when a width, count or the layout changed
+  const key = `${base}|${tags.map((t) => `${t.w}:${t.n}:${t.label}`).join(',')}`;
+  if (bar.dataset.fitKey === key) return;
+  bar.dataset.fitKey = key;
+  const [fit, px] = fitStrip(tags, base, family);
+  bar.dataset.fit = fit;
+  bar.style.setProperty('--fs', `${px}px`);
 }

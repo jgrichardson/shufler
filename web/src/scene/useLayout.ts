@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { useWorld } from '../store';
 import { computeLayout, layoutKey, type SceneLayout } from './layout';
+import { islandLayout } from './islands';
+import { useIslandsView } from '../ui/worldLayout';
 import { needsOwnerIds, needsOwnerStations } from '../lib/derive';
 import { useReplay } from '../ui/catchUp';
 import { useLayers, type Lod } from '../ui/layers';
@@ -10,14 +12,16 @@ export function useLayout(): SceneLayout | null {
   const showEmpty = useLayers((s) => s.empty);
   const key = useWorld((s) => layoutKey(s.snapshot, showEmpty));
   const held = useReplay((s) => s.held);
+  const islands = useIslandsView();
   return useMemo(() => {
     const snap = useWorld.getState().snapshot;
     if (!snap) return null;
     // catch-up replay: pods not yet released stay where the viewer last saw them
     const hasHeld = Object.keys(held).length > 0;
-    return computeLayout(hasHeld ? { ...snap, workpieces: snap.workpieces.map((w) => (held[w.id] ? { ...w, phase: held[w.id] } : w)) } : snap, { showEmpty });
+    const grid = computeLayout(hasHeld ? { ...snap, workpieces: snap.workpieces.map((w) => (held[w.id] ? { ...w, phase: held[w.id] } : w)) } : snap, { showEmpty });
+    return islands ? islandLayout(grid) : grid;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, held]);
+  }, [key, held, islands]);
 }
 
 export type { Lod } from '../ui/layers';

@@ -944,6 +944,8 @@ body.lib-dragging, body.lib-dragging * { cursor: grabbing !important; user-selec
 .lib-drop-choice .lib-menu-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .lib-ghost { position: fixed; z-index: 120; pointer-events: none; border-radius: 10px; padding: 6px 10px; display: flex; flex-direction: column; font-size: 12px; background: var(--glass-strong); }
 .lib-count { margin-left: 6px; font: 700 10px var(--mono); padding: 0 5px; border-radius: 5px; background: color-mix(in srgb, var(--overlay) 12%, transparent); }
+/* big islands: the header is the island's name tag, kept about as wide as the island */
+body[data-world='islands'] .row-head { max-width: 190px; }
 .row-head.is-drop { outline: 2px solid var(--accent); outline-offset: 1px; background: color-mix(in srgb, var(--accent) 30%, var(--panel)); }
 .owed-chip { display: inline-flex; align-items: center; gap: 2px; font: 700 10px var(--mono); padding: 0 4px; border-radius: 5px; color: var(--warn-ink); background: color-mix(in srgb, var(--warn) 16%, transparent); }
 .ctx-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, var(--overlay) 6%, transparent); }

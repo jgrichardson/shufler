@@ -14,7 +14,10 @@ import { PlateProjector } from './PlateProjector';
 import { StripProjector } from './StripProjector';
 import { RowProjector } from './RowProjector';
 import { useLayout, useLod, useRedSets } from './useLayout';
-import { MorphDriver, isPipeline } from './morph';
+import { IslandsDriver, MorphDriver, isPipeline } from './morph';
+import { BigIsland } from './BigIsland';
+import { Glide } from './Glide';
+import type { BuildingLayout } from './layout';
 import { MorphFade } from './MorphFade';
 import { Dimmable } from './Dimmable';
 import { outside, useFocus } from './focus';
@@ -80,6 +83,13 @@ export function World() {
     return out;
   }, [layout]);
 
+  // buildings draw at their own origin; Glide places them, so a layout switch can move them smoothly
+  const localBuildings = useMemo(() => {
+    const out = new Map<string, BuildingLayout>();
+    for (const [id, b] of layout?.buildings ?? []) out.set(id, { ...b, pos: [0, 0, 0], scale: 1 });
+    return out;
+  }, [layout]);
+
   const terminalStation = useTerminalStation();
   const dropStation = useLibDrag((s) => (s.itemIds ? s.over : null));
 
@@ -98,12 +108,17 @@ export function World() {
       <StripProjector layout={layout} />
       <RowProjector layout={layout} />
       <MorphDriver />
+      <IslandsDriver />
       <MorphFade>
       {layers.islands && layout.islands.map((isl) => (
         <Dimmable key={isl.id} on={outside(focus?.lanes, isl.lane, focus) && !isl.stationIds.some((id) => !outside(focus?.stations, id, focus))}>
-          <group position={[isl.center[0], isl.top, isl.center[2]]}>
-            <Island island={isl} buildingLocal={buildingLocals.get(isl.id) ?? []} detail={lod === 'near'} />
-          </group>
+          <Glide pos={[isl.center[0], isl.top, isl.center[2]]} mode={isl.track ? 'islands' : 'grid'} size={isl.radius * isl.stretch}>
+            {isl.track ? (
+              <BigIsland island={isl} detail={lod === 'near'} />
+            ) : (
+              <Island island={isl} buildingLocal={buildingLocals.get(isl.id) ?? []} detail={lod === 'near'} />
+            )}
+          </Glide>
         </Dimmable>
       ))}
       {layers.sessions && [...layout.buildings.values()].map((b) => {
@@ -111,9 +126,9 @@ export function World() {
         if (!st) return null;
         const isRed = red.stations.has(st.id);
         return (
+          <Glide key={b.stationId} pos={b.pos} mode={b.big ? 'islands' : 'grid'} size={b.scale} scale={b.scale}>
           <Building
-            key={b.stationId}
-            layout={b}
+            layout={localBuildings.get(b.stationId) ?? b}
             station={st}
             ownedLive={liveCount.get(st.id) ?? 0}
             selected={selectedStation === st.id}
@@ -125,10 +140,11 @@ export function World() {
             terminal={terminalStation === st.id}
             drop={dropStation === st.id}
           />
+          </Glide>
         );
       })}
       </MorphFade>
-      <Skyway layout={layout} focus={focus} ramps={layers.islands} gateSelected={selection?.kind === 'gate' ? selection.phase : null} litPhases={new Set(snapshot.workpieces.filter((w) => !w.parked && w.phase !== 'shipped').map((w) => w.phase))} />
+      <Skyway layout={layout.grid ?? layout} focus={focus} ramps={layers.islands} gateSelected={selection?.kind === 'gate' ? selection.phase : null} litPhases={new Set(snapshot.workpieces.filter((w) => !w.parked && w.phase !== 'shipped').map((w) => w.phase))} />
       {layers.prs && <Pods
         layout={layout}
         workpieces={snapshot.workpieces}
@@ -137,6 +153,7 @@ export function World() {
         focus={focus}
         detail={detail || ownedBySelected.size > 0}
         pipeline={pipeline}
+        islands={layout.mode === 'islands'}
         zoomed={zoomed}
         labels={layers.labels}
         layers={layers}

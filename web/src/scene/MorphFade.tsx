@@ -4,20 +4,24 @@ import * as THREE from 'three';
 import { PIPE_SINK, morphK } from './morph';
 import { flagTree } from './materialVariants';
 
-/** Islands, buildings and the Control Tower: fade to 10% and sink in Pipeline mode. */
-export function MorphFade({ children, sink = PIPE_SINK }: { children: ReactNode; sink?: number }) {
+/**
+ * Islands, buildings and the Control Tower: fade to 10% and sink in Pipeline mode. `amount` reads another
+ * morph instead (the boulevard under big islands); `vanish` hides the group once the fade is complete.
+ */
+export function MorphFade({ children, sink = PIPE_SINK, amount = morphK, vanish = false }: { children: ReactNode; sink?: number; amount?: () => number; vanish?: boolean }) {
   const group = useRef<THREE.Group>(null);
   const last = useRef(0);
   const frames = useRef(0);
   useFrame(() => {
     const g = group.current;
     if (!g) return;
-    const k = morphK();
+    const k = amount();
     frames.current++;
     // re-apply now and then while faded, so meshes mounted mid-mode pick it up
-    if (k === last.current && !(k > 0 && frames.current % 30 === 0)) return;
+    if (k === last.current && !(k > 0 && g.visible && frames.current % 30 === 0)) return;
     last.current = k;
     g.position.y = -sink * k;
+    if (vanish) g.visible = k < 0.98;
     flagTree(g, 'vFade', k);
   });
   return <group ref={group}>{children}</group>;

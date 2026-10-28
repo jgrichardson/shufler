@@ -73,6 +73,10 @@ Each pull request or issue is a pod on its session's lane, in the column for its
 
 <img src="docs/images/gifs/pipeline.gif" width="820" alt="The 3D scene morphing into a flat kanban board and back">
 
+### Big islands
+
+An optional layout that gives each session its own large island, with its building and a loop of track that has a stop for every stage. Its pods ride the loop to their stage. Switch with **Grid | Islands** in the top bar, `I`, or `?layout=islands`. Pipeline view always uses the grid.
+
 ### Your move
 
 One queue of everything waiting on you: a question an agent asked, a PR ready to merge, a step you have to run yourself. `N` flies to the next one. The Needs you view (`2`) dims everything else so only your items stay lit.
@@ -396,6 +400,7 @@ The daemon uses port 4700. The Vite dev server uses 5173.
 - **Warehouse and dock.** Shipped PRs become crates on their domain's rack. One still owing a close-out message waits on the dock conveyor.
 - **Pipeline mode.** `P` morphs the scene into a kanban board with one column per phase. `P` again goes back.
 - **Horizon view.** `H`, the Horizon button at the end of the layer bar, or `?camera=horizon` in the URL tilts the camera low over the front rows, so the sky, the skyline and the skin's landmarks fill the top of the frame. Rows, selection and levers work as usual. `H` again flies back to where you were.
+- **Big islands.** **Grid | Islands** in the top bar, or `I`, swaps the rows for one large island per session. Each island has a loop of track with a lit post at every stage, and pods ride it to their stage. Hover, click, red beams, gates and levers work as on the grid. The choice is saved in the browser; `?layout=islands` or `?layout=grid` picks one for a single visit. Pipeline view always draws the grid. The horizon view works over either layout: switching layout while it is on keeps it on and re-frames it.
 
 Move with right-drag to pan, left-drag to orbit and the wheel to zoom. Trackpads use two-finger scroll and pinch.
 
@@ -457,6 +462,7 @@ Press `?` in the app for the full list.
 | `1` to `5` | Camera presets: Overview, Needs me, Pipeline, Domain, Shipped |
 | `0` | Clean layers on and off |
 | `P` | Pipeline board on and off |
+| `I` | Big islands on and off |
 | `N`, `Shift+N` | Next, previous item in Your move |
 | `j`, `k` | Next, previous pipeline item |
 | `D`, `Shift+D` | Next, previous domain |
@@ -580,7 +586,6 @@ Ideas that did not make the first release. Some are close, some are a wish list.
 - **Autostart for cmux users.** cmux only accepts connections from programs started inside it, so start-at-login does not reach it yet.
 
 **The world**
-- **Big-island layout.** One large island per session with its own track, for a more game-like view, while Pipeline view keeps the grid.
 - **Casino card ranks** tied to the actual PR or issue.
 - **Community skins** and a skin gallery.
 

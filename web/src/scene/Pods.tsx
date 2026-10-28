@@ -15,7 +15,8 @@ import type { PodKind } from '../skins/types';
 
 const PARKED_GREY = '#5d6570';
 import type { PodSlot, SceneLayout } from './layout';
-import { MORPH_SECONDS, PIPE_SINK, morphK } from './morph';
+import { LAYOUT_SECONDS, MORPH_SECONDS, PIPE_SINK, morphK } from './morph';
+import { loopArc, stopS } from './islands';
 import { cellX, SKY_Y } from './layout';
 import { isBackwards, journeySeconds, journeyStops } from './journey';
 import { REDUCED_SECONDS, reducedMotion } from '../ui/motionPrefs';
@@ -53,6 +54,28 @@ interface Motion {
   dur: number;
   journey?: boolean;
   back?: boolean;
+  /** Big islands: the stretch of loop each leg follows (path[i] to path[i + 1]), instead of a straight line. */
+  bends?: THREE.Vector3[][];
+}
+
+/** The point a share `k` of the way along a polyline, by length. */
+function alongPolyline(pts: THREE.Vector3[], k: number, out: THREE.Vector3): THREE.Vector3 {
+  if (pts.length < 2) return out.copy(pts[0]);
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) total += pts[i].distanceTo(pts[i - 1]);
+  let want = total * Math.min(1, Math.max(0, k));
+  for (let i = 1; i < pts.length; i++) {
+    const d = pts[i].distanceTo(pts[i - 1]);
+    if (want <= d || i === pts.length - 1) return out.lerpVectors(pts[i - 1], pts[i], d > 0 ? Math.min(1, want / d) : 1);
+    want -= d;
+  }
+  return out.copy(pts[pts.length - 1]);
+}
+
+/** Shortest turn from angle a toward b by share k. */
+function turnToward(a: number, b: number, k: number): number {
+  const d = Math.atan2(Math.sin(b - a), Math.cos(b - a));
+  return a + d * k;
 }
 
 function simpleMove(from: THREE.Vector3, to: THREE.Vector3, arc: number, dur: number): Motion {
@@ -69,6 +92,8 @@ interface PodProps {
   dimmed: boolean;
   detail: boolean;
   pipeline: boolean;
+  /** The big-island layout is drawn: the pod rides its island's loop. */
+  islands: boolean;
   /** Calm overview marker: a flat domain-coloured dot instead of the full capsule. */
   dot: boolean;
   /** Red sky beam over needs-me pods (Beams layer). */
@@ -84,12 +109,17 @@ function podTarget(slot: PodSlot, pipeline: boolean): THREE.Vector3 {
   return new THREE.Vector3(...slot.pos);
 }
 
-function PodImpl({ wp, slot, selected, red, dimmed, detail, pipeline, dot, beam, ring }: PodProps) {
+function PodImpl({ wp, slot, selected, red, dimmed, detail, pipeline, islands, dot, beam, ring }: PodProps) {
   const group = useRef<THREE.Group>(null);
   const lamp = useRef<THREE.Mesh>(null);
   const target = useMemo(() => podTarget(slot, pipeline), [slot, pipeline]);
   const wasPipeline = useRef(pipeline);
-  const prevSlot = useRef<{ phase: Phase; lane: number; parked: boolean }>({ phase: slot.phase, lane: slot.lane, parked: slot.parked });
+  const wasIslands = useRef(islands);
+  const prevSlot = useRef<{ phase: Phase; lane: number; parked: boolean; s?: number }>({ phase: slot.phase, lane: slot.lane, parked: slot.parked, s: slot.track?.s });
+  // heading: along the island loop on big islands, straight along +x on the grid
+  const yaw = useRef(slot.rotY ?? 0);
+  const restYaw = useRef(slot.rotY ?? 0);
+  restYaw.current = slot.rotY ?? 0;
   const motion = useRef<Motion | null>(null);
   const trail = useRef<THREE.Mesh>(null);
   const lampMat = useRef<THREE.MeshBasicMaterial>(null);
@@ -119,15 +149,34 @@ function PodImpl({ wp, slot, selected, red, dimmed, detail, pipeline, dot, beam,
     }
     const modeSwitch = wasPipeline.current !== pipeline;
     wasPipeline.current = pipeline;
+    const layoutSwitch = wasIslands.current !== islands;
+    wasIslands.current = islands;
     const prev = prevSlot.current;
-    prevSlot.current = { phase: slot.phase, lane: slot.lane, parked: slot.parked };
+    prevSlot.current = { phase: slot.phase, lane: slot.lane, parked: slot.parked, s: slot.track?.s };
     if (cur.distanceTo(target) < 0.01) return;
     const reduced = reducedMotion() || skippingReplay();
     if (modeSwitch) {
       motion.current = simpleMove(cur, target, 0.8, reduced ? REDUCED_SECONDS : MORPH_SECONDS);
       return;
     }
+    if (layoutSwitch) {
+      // hop between the grid and the islands with the buildings
+      motion.current = simpleMove(cur, target, 3.5, reduced ? REDUCED_SECONDS : LAYOUT_SECONDS);
+      return;
+    }
     const stops = !pipeline && !prev.parked && !slot.parked && prev.lane === slot.lane ? journeyStops(prev.phase, slot.phase) : [];
+    const track = slot.track;
+    if (stops.length && track && prev.s != null) {
+      // round the island's loop, pausing a beat at each stop it passes
+      const { loop, origin } = track;
+      const at = (x: number, z: number) => new THREE.Vector3(origin[0] + x, origin[1], origin[2] + z);
+      const ss = [prev.s, ...stops.slice(0, -1).map((p) => stopS(loop, p)), track.s];
+      const bends = ss.slice(1).map((s1, i) => loopArc(loop, ss[i], s1).map((p) => at(p.x, p.z)));
+      const path = [cur.clone(), ...bends.map((b) => b[b.length - 1])];
+      bends[0][0].copy(cur);
+      motion.current = { path, t: 0, arc: 0, dur: journeySeconds(stops.length, reduced), back: isBackwards(prev.phase, slot.phase), bends };
+      return;
+    }
     if (stops.length) {
       // a journey along the lane, pausing a beat at each district it crosses
       const path = [cur.clone(), ...stops.slice(0, -1).map((p) => new THREE.Vector3(cellX(p), SKY_Y, cur.z)), target.clone()];
@@ -136,7 +185,7 @@ function PodImpl({ wp, slot, selected, red, dimmed, detail, pipeline, dot, beam,
     }
     const laneChange = Math.abs(cur.z - target.z) > 1;
     motion.current = simpleMove(cur, target, laneChange ? 3.5 : 0.6, reduced ? REDUCED_SECONDS : laneChange ? 0.8 : 1.2);
-  }, [target, pipeline, slot.phase, slot.lane, slot.parked]);
+  }, [target, pipeline, islands, slot.phase, slot.lane, slot.parked, slot.track?.s]);
 
   useFrame(({ clock }, dt) => {
     const g = group.current;
@@ -149,11 +198,21 @@ function PodImpl({ wp, slot, selected, red, dimmed, detail, pipeline, dot, beam,
       const u = m.t * segs;
       const i = Math.min(segs - 1, Math.floor(u));
       const k = ease(u - i);
-      current.current.lerpVectors(m.path[i], m.path[i + 1], k);
+      if (m.bends) alongPolyline(m.bends[i], k, current.current);
+      else current.current.lerpVectors(m.path[i], m.path[i + 1], k);
       current.current.y += Math.sin(Math.PI * k) * m.arc;
       if (m.t >= 1) motion.current = null;
     }
     g.position.copy(current.current);
+    // face the way the loop runs (backwards trips keep facing forward, like the grid's)
+    let want = restYaw.current;
+    if (m?.bends) {
+      const dx = current.current.x - lastPos.current.x;
+      const dz = current.current.z - lastPos.current.z;
+      if (dx * dx + dz * dz > 1e-8) want = Math.atan2(-dz, dx) + (m.back ? Math.PI : 0);
+    }
+    if (yaw.current !== want) yaw.current = Math.abs(Math.sin(want - yaw.current)) < 1e-4 && Math.cos(want - yaw.current) > 0 ? want : turnToward(yaw.current, want, 1 - Math.exp(-dt * 10));
+    g.rotation.y = yaw.current;
     const tr = trail.current;
     if (tr) {
       const dx = current.current.x - lastPos.current.x;
@@ -254,6 +313,7 @@ export function Pods({
   focus,
   detail,
   pipeline = false,
+  islands = false,
   zoomed = true,
   labels = 'auto',
   layers = { needs: true, conflicts: true, beams: true },
@@ -265,6 +325,7 @@ export function Pods({
   focus: Focus | null;
   detail: boolean;
   pipeline?: boolean;
+  islands?: boolean;
   zoomed?: boolean;
   labels?: LabelMode;
   layers?: Pick<Layers, 'needs' | 'conflicts' | 'beams'>;
@@ -289,6 +350,7 @@ export function Pods({
             dimmed={outside(focus?.items, wp.id, focus)}
             detail={detail || pipeline}
             pipeline={pipeline}
+            islands={islands}
             dot={dot}
             beam={layers.beams && layers.needs}
             ring={podRing(red, wp.mergeable === 'CONFLICTING', layers)}

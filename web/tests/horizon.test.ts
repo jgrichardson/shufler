@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { FOV, HORIZON_ROWS_TOP, PANEL_FRACTION, horizonFrame, overviewFrame } from '../src/scene/CameraRig';
 import { HORIZON_FOV, HORIZON_MAX_POLAR, HORIZON_PITCH_DEG, cameraFromQuery, useHorizon } from '../src/scene/horizon';
 import { SKY_Y, computeLayout } from '../src/scene/layout';
+import { islandLayout } from '../src/scene/islands';
 import { normalizeSnapshot } from '../src/lib/derive';
 import { makeMockSnapshot } from '../src/mock/snapshot';
 
@@ -41,6 +42,14 @@ describe('horizon store', () => {
     expect(useHorizon.getState().seq).toBe(1);
     useHorizon.getState().toggle();
     expect(useHorizon.getState()).toMatchObject({ on: false, seq: 2 });
+  });
+  it('reframe (the layout changed) bumps the flight sequence only while the view is on', () => {
+    useHorizon.setState({ on: false, seq: 3, reframed: false });
+    useHorizon.getState().reframe();
+    expect(useHorizon.getState()).toMatchObject({ on: false, seq: 3, reframed: false });
+    useHorizon.setState({ on: true });
+    useHorizon.getState().reframe();
+    expect(useHorizon.getState()).toMatchObject({ on: true, seq: 4, reframed: true });
   });
   it('drop (another flight took the camera) clears the flag without a flight back', () => {
     useHorizon.setState({ on: true, seq: 5 });
@@ -110,3 +119,25 @@ describe('horizon framing', () => {
     }
   });
 });
+
+describe('horizon framing over big islands', () => {
+  const big = islandLayout(layout);
+  const f = horizonFrame(big, view);
+  const cam = horizonCam(f);
+
+  it('keeps every big island in front of the camera and inside the frame', () => {
+    for (const isl of big.islands) {
+      const v = new THREE.Vector3(isl.center[0], isl.top, isl.center[2]).project(cam);
+      expect(v.z).toBeLessThan(1);
+      expect(Math.abs(v.x)).toBeLessThan(1);
+      expect(v.y).toBeGreaterThan(-1);
+      expect(v.y).toBeLessThan(HORIZON_ROWS_TOP + 0.05);
+    }
+  });
+
+  it('keeps the same low pitch as on the grid', () => {
+    const dir = f.pos.clone().sub(f.target).normalize();
+    expect((Math.asin(dir.y) * 180) / Math.PI).toBeCloseTo(HORIZON_PITCH_DEG, 3);
+  });
+});
+
