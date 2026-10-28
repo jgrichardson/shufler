@@ -295,7 +295,7 @@ The quickest way is the [hosted demo](https://jgrichardson.github.io/shufler/), 
 cd web && bun install && bun run dev
 ```
 
-Open http://localhost:5173/?mock=1. The app also falls back to mock data, with a banner, if it cannot reach a daemon after three tries.
+Open http://localhost:5173/?mock=1. Without `?mock=1` the app never shows demo data on its own: if it cannot reach a daemon after three tries, it says so and points you to `?mock=1`.
 
 ### Name your workspaces so sessions join exactly
 
