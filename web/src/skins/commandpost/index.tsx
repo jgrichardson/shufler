@@ -28,11 +28,11 @@ export default extendSkin(factory, {
     background: COMMAND.background,
     fog: { color: COMMAND.fog, near: 360, far: 1250 },
     toneMapping: 'aces',
-    exposure: 1.2,
+    exposure: 1.45,
     fx: {
       ao: { radius: 2.0, intensity: 1.5 },
       bloom: { intensity: 0.7, threshold: 1.0, radius: 0.6 },
-      vignette: { offset: 0.3, darkness: 0.55 },
+      vignette: { offset: 0.35, darkness: 0.3 },
     },
     dim: { tint: '#2a2d22', amount: 0.78, darken: 0.6, glow: 0.25 },
     landmarkScale: LANDMARK_SCALE,

@@ -14,23 +14,23 @@ export const COMMAND = {
   skyZenith: '#070a12',
   skyHorizon: '#1b2230',
   // the map
-  terrain: '#30331f',
-  terrainAlt: '#383c2b',
+  terrain: '#262a1b',
+  terrainAlt: '#2c3020',
   /** Map grid squares and contour lines, drawn at low alpha over the terrain. */
-  gridLine: '#6f6c52',
+  gridLine: '#8a876a',
   /** Far mesas, fading into the haze. */
   mesa: '#262a20',
-  road: '#4a4538',
+  road: '#6a6352',
   roadLine: '#d9cfae',
   // paint and cloth
-  olive: '#4b5320',
-  oliveDark: '#2f3416',
-  khaki: '#8a7f5c',
-  canvasTent: '#6f6a47',
-  netting: '#3f4a2c',
-  steel: '#5d6364',
+  olive: '#7a8a3e',
+  oliveDark: '#4e5728',
+  khaki: '#bcae84',
+  canvasTent: '#a39c6c',
+  netting: '#5f6c40',
+  steel: '#8e9697',
   tyre: '#1e1f1c',
-  timber: '#6b5638',
+  timber: '#94774c',
   // lettering
   /** Stencil paint on olive. */
   stencil: '#efe7cf',
@@ -40,8 +40,8 @@ export const COMMAND = {
   /** Dark surround for every status, ball and review lamp. */
   bezel: '#1d2016',
   /** The dark painted strips the phase accents sit on. */
-  opsBoard: '#22261a',
-  concrete: '#4a4840',
+  opsBoard: '#181b12',
+  concrete: '#7a776a',
   // lights
   floodLamp: '#ffcf8a',
   screen: '#7fe0c2',
@@ -49,8 +49,8 @@ export const COMMAND = {
   /** The tall mast's strobe on the skyline: white, never red (red means "you"). */
   strobe: '#f4f6ff',
   keyLight: '#c9d6ff',
-  hemiSky: '#2a3550',
-  hemiGround: '#15170f',
+  hemiSky: '#56648a',
+  hemiGround: '#33362a',
   fillLight: '#ffb874',
   window: '#ffd59a',
   cloud: '#2a3040',
