@@ -10,6 +10,8 @@ export const CASINO = {
   fog: '#140d0a',
   /** Far walls and the ceiling haze above them. */
   wall: '#2a1a14',
+  /** Lamp-lit haze hanging over the walls, seen only from the horizon camera; it darkens to the background overhead. */
+  haze: '#3a2318',
   wallPanel: '#3a241a',
   pilaster: '#4a2f22',
   // lights
@@ -57,6 +59,7 @@ export const CASINO_LIGHT = {
   background: '#efe6d6',
   fog: '#efe4d2',
   wall: '#efe4d0',
+  haze: '#f7eee0',
   wallPanel: '#e6d6ba',
   pilaster: '#f6eedf',
   keyLight: '#fff3e0',

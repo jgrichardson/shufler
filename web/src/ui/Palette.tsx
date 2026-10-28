@@ -10,6 +10,7 @@ import { contextPr, contextStation, fuzzy, runSkill } from './skills';
 import { openTerminal } from './terminals';
 import { useFocusTrap } from './focusTrap';
 import { focusLabel, useTerminalName } from '../lib/terminalName';
+import { toggleHorizon } from '../scene/horizon';
 
 export const usePalette = create<{ open: boolean; set: (open: boolean) => void }>()((set) => ({ open: false, set: (open) => set({ open }) }));
 
@@ -83,6 +84,7 @@ export function Palette() {
       { key: 'l:prod', kind: 'lever', title: 'Prod console', sub: 'Terminal with the production console command typed in', target: '', run: () => openTerminal({ title: 'Prod console', preset: 'prod_console' }) },
       { key: 'l:focus', kind: 'lever', title: focusLabel(terminal), sub: 'Bring the session window forward', target: '', run: () => station && requestAction('focus', { station_id: station }) },
       { key: 'l:needs', kind: 'lever', title: 'Show what needs me', sub: 'Dim everything else', target: '', run: () => dispatch({ type: 'preset', preset: 'needs' }) },
+      { key: 'l:horizon', kind: 'lever', title: 'Horizon view', sub: 'Tilt the camera down to the sky and skyline, or back (H)', target: '', run: toggleHorizon },
     );
     return out;
     // station is read inside run closures

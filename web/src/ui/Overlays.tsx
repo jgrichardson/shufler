@@ -306,6 +306,7 @@ const KEYS: [string, string][] = [
   ['/', 'Commands'],
   ['L', 'Context library'],
   ['R', 'Reset the view'],
+  ['H', 'Horizon view: tilt down to the sky and skyline, and back'],
   ['Esc', 'Close dialog, drawer or selection'],
   ['?', 'This help'],
 ];

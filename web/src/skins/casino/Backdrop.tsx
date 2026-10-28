@@ -187,6 +187,49 @@ function SlotBanks({ kit, light }: { kit: Kit; light: boolean }) {
   );
 }
 
+/**
+ * The hall above the walls: lamp-lit haze low over the wall tops, darkening to the background overhead.
+ * Only directions near or above level draw, so the Overview, which looks steeply down, never sees it.
+ */
+function HallHaze({ kit }: { kit: Kit }) {
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        fog: false,
+        uniforms: { haze: { value: new THREE.Color(kit.p.haze) }, top: { value: new THREE.Color(kit.p.background) } },
+        vertexShader: /* glsl */ `
+          varying vec3 vWorld;
+          void main() {
+            vec4 w = modelMatrix * vec4(position, 1.0);
+            vWorld = w.xyz;
+            gl_Position = projectionMatrix * viewMatrix * w;
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform vec3 haze, top;
+          varying vec3 vWorld;
+          float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          void main() {
+            vec3 d = normalize(vWorld - cameraPosition);
+            if (d.y < -0.3) discard;
+            vec3 col = mix(haze, top, smoothstep(-0.06, 0.4, d.y));
+            // fade in from the clear colour below, so nothing changes where the floor and walls end
+            col = mix(top, col, smoothstep(-0.3, -0.12, d.y));
+            col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
+            gl_FragColor = vec4(col, 1.0);
+            #include <colorspace_fragment>
+          }`,
+      }),
+    [kit],
+  );
+  return (
+    <mesh material={material} renderOrder={-10} frustumCulled={false}>
+      <sphereGeometry args={[1500, 48, 24]} />
+    </mesh>
+  );
+}
+
 /** Soft, out-of-focus lights in the haze round the room: the chandeliers and machines beyond the depth of field. */
 function Bokeh({ kit, light }: { kit: Kit; light: boolean }) {
   const ref = useRef<THREE.Points>(null);
@@ -362,12 +405,13 @@ function NightEnvironment() {
   );
 }
 
-/** Casino backdrop: floors and the step down to the cage, walls, slot banks, bokeh, the house sign, lights. */
+/** Casino backdrop: the haze over the hall, floors and the step down to the cage, walls, slot banks, bokeh, the house sign, lights. */
 export function Backdrop() {
   const kit = useKit();
   const light = useResolvedTheme() === 'light';
   return (
     <>
+      <HallHaze kit={kit} />
       <Floors kit={kit} />
       <Walls kit={kit} light={light} />
       <SlotBanks kit={kit} light={light} />

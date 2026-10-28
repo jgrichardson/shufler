@@ -38,6 +38,7 @@ function SkyDome({ light }: { light: boolean }) {
           glow: { value: new THREE.Color(p.skyGlow) },
           sunCol: { value: new THREE.Color(p.sun) },
           starCol: { value: new THREE.Color(p.stars) },
+          fogCol: { value: new THREE.Color(p.fog) },
           sunDir: { value: light ? SUN_DIR : MOON_DISC },
           night: { value: light ? 0 : 1 },
         },
@@ -49,7 +50,7 @@ function SkyDome({ light }: { light: boolean }) {
             gl_Position = projectionMatrix * viewMatrix * w;
           }`,
         fragmentShader: /* glsl */ `
-          uniform vec3 zenith, upper, horizon, glow, sunCol, starCol, sunDir;
+          uniform vec3 zenith, upper, horizon, glow, sunCol, starCol, sunDir, fogCol;
           uniform float night;
           varying vec3 vWorld;
           float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -89,6 +90,9 @@ function SkyDome({ light }: { light: boolean }) {
               sky = mix(sky, sunCol * 1.6, moon);
               sky += sunCol * (pow(s, 120.0) * 0.25 + pow(s, 12.0) * 0.06);
             }
+            // below the horizon the dome stands in for the lawn past its edge: fogged like the lawn's far rim,
+            // so the horizon camera sees the park run out to the sky with no seam
+            sky = mix(sky, fogCol, smoothstep(0.01, -0.025, d.y));
             sky += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
             gl_FragColor = vec4(sky, 1.0);
             #include <tonemapping_fragment>

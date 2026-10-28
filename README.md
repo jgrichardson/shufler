@@ -395,6 +395,7 @@ The daemon uses port 4700. The Vite dev server uses 5173.
 - **Red.** A red beam and ring mean the item needs you. Red is never hidden at any zoom level.
 - **Warehouse and dock.** Shipped PRs become crates on their domain's rack. One still owing a close-out message waits on the dock conveyor.
 - **Pipeline mode.** `P` morphs the scene into a kanban board with one column per phase. `P` again goes back.
+- **Horizon view.** `H`, the Horizon button at the end of the layer bar, or `?camera=horizon` in the URL tilts the camera low over the front rows, so the sky, the skyline and the skin's landmarks fill the top of the frame. Rows, selection and levers work as usual. `H` again flies back to where you were.
 
 Move with right-drag to pan, left-drag to orbit and the wheel to zoom. Trackpads use two-finger scroll and pinch.
 
@@ -463,6 +464,7 @@ Press `?` in the app for the full list.
 | `#` then digits, `Enter` | Fly to a PR by number |
 | `Enter`, `F`, `O` | Fly to the selection, focus its session, open its PR |
 | `L` | Context library |
+| `H` | Horizon view on and off |
 | `/` | Command drawer |
 | `Cmd+K` | Skills palette |
 | `R`, `?`, `Esc` | Reset view, help, back out one level |
@@ -578,7 +580,6 @@ Ideas that did not make the first release. Some are close, some are a wish list.
 - **Autostart for cmux users.** cmux only accepts connections from programs started inside it, so start-at-login does not reach it yet.
 
 **The world**
-- **A horizon camera.** Let the camera tilt low enough to show the sky, the skyline and the big landmarks that skins such as Sky Islands, Theme Park and Casino already draw.
 - **Big-island layout.** One large island per session with its own track, for a more game-like view, while Pipeline view keeps the grid.
 - **Casino card ranks** tied to the actual PR or issue.
 - **Community skins** and a skin gallery.

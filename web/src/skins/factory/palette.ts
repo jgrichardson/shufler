@@ -13,6 +13,10 @@ export const FACTORY = {
   sun: '#3a2e2a',
   /** Matches the horizon, so distant parts dissolve into the sky. */
   fog: '#3a3446',
+  /** Low ridgelines far off, seen only from the horizon camera: far to near, each a shade deeper. */
+  ridgeFar: '#2f2b39',
+  ridgeMid: '#282532',
+  ridgeNear: '#211f2a',
   // lights
   hemiSky: '#8f9bd0',
   hemiGround: '#3a3040',
@@ -104,6 +108,9 @@ export const FACTORY_LIGHT = {
   skyBelow: '#dcd2cc',
   sun: '#3a332a',
   fog: '#f1e6dc',
+  ridgeFar: '#ddd0c8',
+  ridgeMid: '#cfc1ba',
+  ridgeNear: '#bfb1ab',
   hemiSky: '#f4f8ff',
   hemiGround: '#cbb9ad',
   ambient: '#ffffff',

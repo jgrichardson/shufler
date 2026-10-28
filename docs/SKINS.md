@@ -201,6 +201,10 @@ A full skin supplies every slot with `defineSkin({...})`; `web/src/skins/starshi
   meshes. It returns one stable object per palette and theme, so you can cache materials on it.
 - Respect `reducedMotion()` for idle animation.
 - The Backdrop slot must provide the scene's lights.
+- The horizon view (`H`, or `?camera=horizon`) looks almost level over the front rows through a wider
+  lens, so a Backdrop should carry its sky and ground out to the horizon with no seam or edge. Scenery
+  that sits near the horizon line is never framed by the Overview, so you can give that view its own
+  skyline (Starship's gas giant, Factory's ridgelines) without changing the default look.
 
 ### Slots
 
