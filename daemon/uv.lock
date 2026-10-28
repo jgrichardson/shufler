@@ -499,9 +499,9 @@ wheels = [
 ]
 
 [[package]]
-name = "shufler-daemon"
+name = "shufler"
 version = "0.2.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },

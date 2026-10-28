@@ -207,7 +207,7 @@ Shufler is early software, version 0.2.0. It was built for one developer's setup
 - It is macOS first. Terminals: cmux, iTerm2 and tmux (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
 - Agent harnesses: Claude Code and the OpenAI Codex CLI, mixed freely (see [`docs/AGENTS.md`](docs/AGENTS.md)).
 - The only supported source control host is GitHub, through the `gh` CLI.
-- v0.2.0 adds the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md). Install from a clone of the repo.
+- v0.2.0 adds the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md). From v0.3.0 you can install with Homebrew from the project's own tap, with `pipx` or `uv tool` from a release wheel, with the one-line installer, or from a clone (see [Install](#install)). It is not on PyPI or in Homebrew core.
 - The optional integrations (a reviewer bot, work item sources, custom commands) talk to your tools through commands you configure. They are all off by default.
 
 See [Support matrix](#support-matrix) for what is planned.
@@ -216,18 +216,52 @@ See [Support matrix](#support-matrix) for what is planned.
 
 | Needs | Version | Notes |
 |---|---|---|
-| macOS | recent | `bin/shufler` uses `launchctl`, `lsof` and `ps` |
-| A terminal | any recent | [cmux](https://github.com/manaflow-ai/cmux), iTerm2 or tmux. Its workspaces, tabs or windows become rows. `bin/shufler setup` picks one |
-| [uv](https://docs.astral.sh/uv/) | any recent | Installs Python and the daemon's dependencies |
-| Python | 3.11 or newer | uv fetches it for you |
-| [Bun](https://bun.sh) | any recent | Builds and runs the web app. The lockfile is `bun.lock` |
-| Node | 18 or newer | Needed by the web toolchain (Vite 5, Vitest 2) |
+| macOS | recent | `shufler` uses `launchctl`, `lsof` and `ps` |
+| A terminal | any recent | [cmux](https://github.com/manaflow-ai/cmux), iTerm2 or tmux. Its workspaces, tabs or windows become rows. `shufler setup` picks one |
+| [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io) | any recent | Installs the `shufler` command. Homebrew needs neither |
+| Python | 3.11 or newer | uv fetches it for you; Homebrew brings its own |
+| [Bun](https://bun.sh) | any recent | From source only: builds the web app. The lockfile is `bun.lock`. Packaged installs carry a built copy |
+| Node | 18 or newer | From source only: needed by the web toolchain (Vite 5, Vitest 2) |
 | [GitHub CLI](https://cli.github.com) | any recent | Run `gh auth login` first. Needed for PR data |
 | Claude Code | any recent | Sessions run in your terminal. Transcripts are read from `~/.claude/projects`. You need Claude Code, the Codex CLI or both |
 | [Codex CLI](https://github.com/openai/codex) | any recent | Codex sessions get rows too. Transcripts are read from `~/.codex/sessions`. Picked up automatically when installed; `[agents] enabled = ["codex"]` runs Codex alone |
 | A modern browser | WebGL 2 | Chrome is what the author uses |
 
 ## Install
+
+Each install gives you a `shufler` command. The packaged ones (Homebrew, `pipx`, `uv tool`, the one-liner) carry a built copy of the web app, so they need no Bun, Node or clone. Packages are attached to GitHub releases from v0.3.0 on. Shufler is not on PyPI or in Homebrew core.
+
+**One line** (macOS). It checks for Python, uv or pipx, installs the latest release wheel, then runs `shufler setup`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jgrichardson/shufler/main/install.sh | sh
+```
+
+Running it again upgrades in place. It never uses sudo and never starts the daemon; read [`install.sh`](install.sh) first if you like. `SHUFLER_PACKAGE=v0.3.0` pins a release, `SHUFLER_INSTALLER=pipx` picks pipx over uv, and `SHUFLER_NO_SETUP=1` skips setup.
+
+**Homebrew**, from the project's tap:
+
+```bash
+brew tap jgrichardson/shufler
+brew install shufler
+```
+
+**pipx or uv**, from the wheel on a release (put in the version you want):
+
+```bash
+pipx install https://github.com/jgrichardson/shufler/releases/download/v0.3.0/shufler-0.3.0-py3-none-any.whl
+uv tool install https://github.com/jgrichardson/shufler/releases/download/v0.3.0/shufler-0.3.0-py3-none-any.whl
+```
+
+Then, for any of those:
+
+```bash
+shufler setup           # writes ~/.config/shufler/config.toml and picks your terminal
+$EDITOR ~/.config/shufler/config.toml   # set scm.repo, at least
+shufler start
+```
+
+**From source**, for development or the newest code. Here the command is `bin/shufler`, which adds `dev` and `test`:
 
 ```bash
 git clone https://github.com/jgrichardson/shufler.git
@@ -242,16 +276,18 @@ bin/shufler start
 
 Open http://127.0.0.1:4700. The status bar at the bottom left should say **Live**.
 
-`bin/shufler status` shows the process, the health check and the age of every data source. If a source is failing, it says why.
+`shufler status` shows the process, the health check and the age of every data source. If a source is failing, it says why.
 
-With cmux, run `bin/shufler start` from a shell inside a cmux workspace. cmux only accepts connections from processes it started, so a daemon started anywhere else shows no rows and `status` reports the `cmux` source as OFF.
+With cmux, run `shufler start` from a shell inside a cmux workspace. cmux only accepts connections from processes it started, so a daemon started anywhere else shows no rows and `status` reports the `cmux` source as OFF.
 
 For the same reason, the login item does not work with cmux yet:
 
 ```bash
-bin/shufler install      # launchd agent: RunAtLoad and KeepAlive (cannot reach cmux today)
-bin/shufler uninstall    # remove it
+shufler install          # launchd agent: RunAtLoad and KeepAlive (cannot reach cmux today)
+shufler uninstall        # remove it
 ```
+
+With Homebrew, `brew services start shufler` does the same job.
 
 ### Try it without any setup
 
@@ -393,7 +429,7 @@ Global commands appear in the World panel, the palette and the command drawer (`
 | `~/.cache/shufler/` | Cache, phase timers, pid file |
 | `~/.local/share/shufler/history.sqlite` | History |
 | `~/Library/Logs/shufler.log` | Daemon log |
-| `actions.jsonl` in the repo root | A log of every action sent (never keystrokes) |
+| `actions.jsonl` in the repo root (from source) or `~/.local/share/shufler/` (packaged) | A log of every action sent (never keystrokes) |
 
 The daemon uses port 4700. The Vite dev server uses 5173.
 
@@ -537,16 +573,19 @@ Do not expose port 4700 beyond your machine.
 
 ## CLI reference
 
+A packaged install runs these as `shufler <command>`; from a clone they are `bin/shufler <command>`. `dev` and `test` exist only in a clone, and `serve` only in the packaged command.
+
 | Command | Does |
 |---|---|
 | `bin/shufler init [--force]` | Copy the example config to `~/.config/shufler/config.toml`. Will not overwrite without `--force` |
 | `bin/shufler setup` | Pick your terminal and its options, and the agent harnesses, and write them to the config (`--yes`, `--terminal <kind>`, `--agents auto\|claude,codex`) |
-| `bin/shufler start` | Run the daemon in the background (or through launchd if installed) and wait until healthy. It serves `web/dist` |
+| `bin/shufler start` | Run the daemon in the background (or through launchd if installed) and wait until healthy. It serves `web/dist`, or the copy inside the package |
 | `bin/shufler stop` | Stop the daemon |
 | `bin/shufler status` | Show the process, health, the agent harnesses watched, and each source's age and error |
 | `bin/shufler dev` | Daemon with `--reload` plus `bun run dev`. Allows the `:5173` origin |
 | `bin/shufler install` | Install and load a launchd agent that starts at login |
 | `bin/shufler uninstall` | Unload and remove it |
+| `shufler serve [--port N]` | Run the daemon in the foreground, for launchd and `brew services` |
 | `bin/shufler test [args]` | Run the daemon tests with pytest |
 | `bin/shufler library ...` | Manage the context library: `add`, `list`, `grant`, `send` |
 | `bin/shufler version` | Print the version |
@@ -559,6 +598,7 @@ bin/shufler dev                           # daemon with reload + Vite at http://
 cd daemon && uv run pytest -q                # daemon tests (or: bin/shufler test)
 cd web && npx tsc --noEmit && npx vitest run # typecheck and web tests
 cd web && bun run build                      # typecheck, then build web/dist
+packaging/release.sh                         # build the release sdist, wheel and Homebrew formula into dist/
 ```
 
 The web app does not rebuild by itself under `start`. After changing `web/`, run `bun run build` again.
@@ -602,9 +642,6 @@ Ideas that are not built yet. Some are close, some are a wish list. If one matte
 - GitLab and Bitbucket, and CI systems beyond GitHub checks.
 - Linear, Jira and GitHub Issues as work sources.
 - Presets for common PR review bots.
-
-**Packaging**
-- Install with Homebrew or `pipx`, and a one-line setup.
 
 ## Contributing
 

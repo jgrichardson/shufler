@@ -31,3 +31,30 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: npx tsc --noEmit
       - run: npx vitest run
+
+  # Build the web app, the sdist and the wheel the way packaging/release.sh does, then install the wheel into a
+  # clean venv under a throwaway HOME and run it: version, setup, the daemon on a spare port, the served web app.
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: cmp LICENSE daemon/LICENSE
+      - run: bun install --frozen-lockfile && bun run build
+        working-directory: web
+      - run: uv build --out-dir ../dist
+        working-directory: daemon
+        env:
+          SHUFLER_REQUIRE_WEB: "1"
+      - run: unzip -l dist/*.whl | grep shufler/web/index.html
+      - run: packaging/smoke-test.sh dist/*.whl 4781
+        env:
+          PYTHON: python

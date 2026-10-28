@@ -4,6 +4,43 @@ All notable changes to Shufler are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Packaged installs. The daemon builds as a wheel and sdist named `shufler`
+  that carry the built web app, so `pipx install` or `uv tool install` of a
+  release wheel gives a working `shufler` command with no clone, Bun or Node.
+  Shufler is not on PyPI yet; the wheel is attached to the GitHub release.
+- A `shufler` command for packaged installs, with the same commands as
+  `bin/shufler` (`init`, `setup`, `start`, `stop`, `status`, `install`,
+  `uninstall`, `library`, `version`) plus `serve`, which runs the daemon in
+  the foreground for launchd and `brew services`. `python -m shufler` works
+  too.
+- A Homebrew formula for the project's own tap (`brew tap
+  jgrichardson/shufler`), in `packaging/homebrew/shufler.rb`, with a
+  `brew services` block.
+- `install.sh`, a one-line installer: it checks for Python, uv or pipx,
+  installs the latest release wheel with `uv tool` or `pipx`, then runs
+  `shufler setup`. Running it again upgrades in place.
+- `packaging/release.sh` builds the web app, the sdist and the wheel, smoke
+  tests the wheel, fills the formula's URL and sha256, and prints what to
+  publish. It publishes nothing itself.
+- CI builds the wheel on macOS and Linux and smoke tests it: a clean venv,
+  a throwaway home, `setup`, the daemon on a spare port, and the served web
+  app (`packaging/smoke-test.sh`).
+
+### Changed
+
+- The Python distribution is renamed from `shufler-daemon` to `shufler`, and
+  the daemon now has a build backend (hatchling). `uv sync` installs the
+  package into `daemon/.venv`, which adds a `shufler` command there.
+- An installed copy reads its example config and web app from inside the
+  package, and writes `actions.jsonl` to `~/.local/share/shufler/` rather
+  than beside the code. A clone behaves as before.
+- `shufler stop` and `status` only count a launchd job whose plist is in the
+  current home directory.
+
 ## [0.2.0] - 2026-10-28
 
 ### Added

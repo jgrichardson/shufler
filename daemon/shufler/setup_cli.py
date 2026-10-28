@@ -21,8 +21,11 @@ import sys
 import tomllib
 from pathlib import Path
 
-DAEMON_DIR = Path(__file__).resolve().parents[1]
-EXAMPLE = DAEMON_DIR / "config.example.toml"
+# Inside the package when installed from a wheel, else daemon/config.example.toml (config.py does the same).
+PACKAGE_DIR = Path(__file__).resolve().parent
+EXAMPLE = PACKAGE_DIR / "config.example.toml"
+if not EXAMPLE.is_file():
+    EXAMPLE = PACKAGE_DIR.parent / "config.example.toml"
 
 # Per adapter: (key, question, choices or None). The default is the current value, else the adapter's default.
 OPTIONS = {

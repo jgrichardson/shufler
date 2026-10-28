@@ -663,8 +663,9 @@ def create_app(hub: Hub | None = None, *, start_loop: bool = True, testing: bool
         if not index.is_file():
             return PlainTextResponse(
                 "Shufler daemon is running, but the web build is missing.\n"
-                f"Build it with: cd {config.ROOT / 'web'} && bun install && bun run build\n"
-                "API: /api/snapshot  WebSocket: /ws\n",
+                + ("This install has no web build; reinstall from a release wheel (see the README).\n" if config.INSTALLED
+                   else f"Build it with: cd {config.ROOT / 'web'} && bun install && bun run build\n")
+                + "API: /api/snapshot  WebSocket: /ws\n",
                 status_code=503,
             )
         if path:
