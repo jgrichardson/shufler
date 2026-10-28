@@ -8,7 +8,7 @@
 
 A 3D control room for developers who run many AI coding agent sessions at once, in Claude Code, the OpenAI Codex CLI or both.
 
-**[Try the live demo](https://jgrichardson.github.io/shufler/)** (sample data in your browser, nothing to install) · [Quickstart](#quickstart) · [Install](#install) · [How is this different?](#how-is-this-different)
+**[Try the live demo](https://shufler.app)** (sample data in your browser, nothing to install) · [Quickstart](#quickstart) · [Install](#install) · [How is this different?](#how-is-this-different)
 
 <picture>
   <source media="(prefers-reduced-motion: reduce)" srcset="docs/images/hero.png">
@@ -291,7 +291,7 @@ bin/shufler uninstall    # remove it
 
 Mock mode runs the web app on built-in sample data. No daemon, terminal or GitHub access is needed. Every lever is simulated.
 
-The quickest way is the [hosted demo](https://jgrichardson.github.io/shufler/), the same mock mode built as a static site. To run it locally:
+The quickest way is the [hosted demo](https://shufler.app), the same mock mode built as a static site. To run it locally:
 
 ```bash
 cd web && bun install && bun run dev
