@@ -1,5 +1,5 @@
 import { dispatch, useWorld } from '../store';
-import { makeMockSnapshot, tickMockSnapshot } from '../mock/snapshot';
+import { lightenMockSnapshot, makeMockSnapshot, tickMockSnapshot } from '../mock/snapshot';
 import { normalizeSnapshot, type PhaseMemory } from '../lib/derive';
 import { mockField } from '../mock/library';
 import { debouncePhases, type PhaseDebounce } from '../lib/hysteresis';
@@ -48,6 +48,7 @@ function startMock() {
   if (mockTimer) return;
   dispatch({ type: 'enter_mock' });
   mockSnap = makeMockSnapshot();
+  if (import.meta.env.VITE_DEMO === '1') mockSnap = lightenMockSnapshot(mockSnap);
   let tick = 0;
   dispatch({ type: 'snapshot', snapshot: norm(mockSnap, true), at: Date.now() });
   mockTimer = setInterval(() => {

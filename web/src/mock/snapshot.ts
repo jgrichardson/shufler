@@ -328,6 +328,26 @@ export function makeMockSnapshot(nowMs = Date.now()): Raw {
   };
 }
 
+/** The hosted demo's lighter floor: six rows and one or two PRs each. Local `?mock=1` keeps the full world. */
+const LIGHT_ROWS: Record<string, number[]> = {
+  'ws-pf': [318, 352],
+  'ws-ac': [384, 371],
+  'ws-cy': [214],
+  'ws-mf': [361],
+  'ws-rx': [413],
+  'ws-hr': [409],
+};
+
+export function lightenMockSnapshot(snap: Raw): Raw {
+  const stations = snap.stations.filter((s: Raw) => s.id in LIGHT_ROWS).map((s: Raw) => ({ ...s, pr_numbers: LIGHT_ROWS[s.id] }));
+  const prs = new Set(Object.values(LIGHT_ROWS).flat());
+  const workpieces = snap.workpieces.filter((w: Raw) => w.pr != null && prs.has(w.pr));
+  const halls = snap.halls
+    .map((h: Raw) => ({ ...h, station_ids: h.station_ids.filter((id: string) => id in LIGHT_ROWS) }))
+    .filter((h: Raw) => h.station_ids.length);
+  return { ...snap, stations, workpieces, halls };
+}
+
 const DEMO_PHASES = ['plan', 'build', 'qa', 'review', 'merge', 'deploy'] as const;
 /** One demo cycle: each district once, then a tick in the warehouse. */
 const DEMO_CYCLE = DEMO_PHASES.length + 1;
