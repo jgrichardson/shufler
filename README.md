@@ -204,7 +204,7 @@ A drawer of local shells, for a console you want next to the scene. At most six,
 
 Shufler is early software, version 0.2.0. It was built for one developer's setup and is being opened up.
 
-- It is macOS first. Terminals: cmux, iTerm2 and tmux (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
+- It is macOS first. Terminals: cmux, iTerm2 and tmux, plus a no-terminal mode that works with any other terminal (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
 - Agent harnesses: Claude Code and the OpenAI Codex CLI, mixed freely (see [`docs/AGENTS.md`](docs/AGENTS.md)).
 - The only supported source control host is GitHub, through the `gh` CLI.
 - v0.2.0 adds the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md). From v0.3.0 you can install with Homebrew from the project's own tap, with `pipx` or `uv tool` from a release wheel, with the one-line installer, or from a clone (see [Install](#install)). It is not on PyPI or in Homebrew core.
@@ -217,7 +217,7 @@ See [Support matrix](#support-matrix) for what is planned.
 | Needs | Version | Notes |
 |---|---|---|
 | macOS | recent | `shufler` uses `launchctl`, `lsof` and `ps` |
-| A terminal | any recent | [cmux](https://github.com/manaflow-ai/cmux), iTerm2 or tmux. Its workspaces, tabs or windows become rows. `shufler setup` picks one |
+| A terminal | any recent | [cmux](https://github.com/manaflow-ai/cmux), iTerm2 or tmux. Its workspaces, tabs or windows become rows. `shufler setup` picks one. Any other terminal works in no-terminal mode (`none`): rows come from the running sessions, and sending, answering and Focus are off |
 | [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io) | any recent | Installs the `shufler` command. Homebrew needs neither |
 | Python | 3.11 or newer | uv fetches it for you; Homebrew brings its own |
 | [Bun](https://bun.sh) | any recent | From source only: builds the web app. The lockfile is `bun.lock`. Packaged installs carry a built copy |
@@ -323,7 +323,7 @@ Everything machine-specific lives in one TOML file. The daemon looks for it in t
 |---|---|---|
 | `[app] port` | `4700` | Port the daemon listens on. It always binds to `127.0.0.1` |
 | `[app] owner_aliases` | `["me"]` | Names in ledger "Ball" cells that mean you |
-| `[terminal] kind` | `cmux` | `cmux`, `iterm2` or `tmux`. Each has its own section (`[cmux] bin`, ...) |
+| `[terminal] kind` | `auto` | `cmux`, `iterm2`, `tmux`, `none` or `auto`. Each terminal has its own section (`[cmux] bin`, ...). `none` works with any terminal: one row per running session, with the levers that need a terminal greyed out. `auto` picks the first terminal running, else the first installed, else `none` |
 | `[terminal] command_titles` | empty | Workspace titles that get the "command" domain (your control workspaces) |
 | `[terminal] utility` | empty | Workspace titles that get no row |
 | `[agents] enabled` | `"auto"` | Agent harnesses to watch: `["claude", "codex"]`, or `"auto"` for Claude Code plus every installed harness. See [`docs/AGENTS.md`](docs/AGENTS.md) |
@@ -497,6 +497,10 @@ Starship is the default. Factory, Sky Islands, Theme Park and Casino are the oth
 
 When on, which is the default, the scene selects and flies to whichever workspace you focus in your terminal. It pauses for 20 seconds after you pick something yourself. Settings → General has options for this and for reduced motion.
 
+### Without a supported terminal
+
+Use Shufler with any terminal (Terminal.app, Ghostty, WezTerm, an editor's terminal, ssh) by picking `none` in `bin/shufler setup`, or let `auto` fall back to it when no supported terminal is found. Each running `claude` or `codex` session becomes a row, with its state, model, tokens, questions and PRs as usual; the row goes when the session exits. What needs a terminal is greyed out, with the reason in the tooltip: sending a prompt, answering a question, running a skill, sending library context, Focus, new tabs and terminal sync. Answer in the session's own window; the scene picks the answer up. Every adapter declares what it can do (`capabilities.terminal_caps` in the snapshot), so a terminal that cannot focus, say, only greys out Focus.
+
 ### Keyboard shortcuts
 
 Press `?` in the app for the full list.
@@ -525,7 +529,7 @@ Press `?` in the app for the full list.
 | Area | Supported | Planned |
 |---|---|---|
 | OS | macOS | Linux (systemd user unit for autostart) |
-| Terminal | cmux, iTerm2, tmux | WezTerm |
+| Terminal | cmux, iTerm2, tmux; any other terminal in no-terminal mode (watch only) | WezTerm |
 | Agent harness | Claude Code, Codex CLI | Gemini CLI, Aider, OpenCode, other harnesses and accounts |
 | Source control | GitHub through `gh` | |
 | External review | A reviewer bot, by GitHub login and an optional watcher command | |
@@ -544,6 +548,8 @@ Also planned: `restart`, `logs` and `doctor` commands, and starting a new sessio
 - **Actions.** Every action is validated against current state and previewed. Commands run as argument lists with a 30-second timeout, never through a shell. Each action is logged.
 - **Never-do guard.** The daemon refuses `reset --hard`, force pushes, worktree removal, process kills, chat posts and outbound sends, in commands and in prompts it would send to a session. Custom commands go through the same guard. Re-triggering the reviewer bot posts a PR comment (or runs your command), and its preview says so.
 - **Custom commands** run exactly the argv you configured. Shufler cannot tell a read from a write, so only configure commands you trust, and mark production ones `prod = true`.
+- **Processes.** Every 10 seconds (3 in no-terminal mode) the daemon lists running `claude` and `codex` processes with `ps`, and reads each new one's working directory (`lsof`) and terminal id from its environment (`ps -E`) to match it to a row. Only those fields are kept. Turn it off with `[terminal] processes = false`, except in no-terminal mode, where the processes are the rows.
+- **Levers the terminal cannot pull** (no-terminal mode, or a terminal adapter without that capability) are greyed out with the reason in their tooltip, and the daemon refuses them if called anyway. Nothing is typed, focused or opened.
 - **Built-in terminals** are real shells on your machine: at most 6, closed after 2 hours idle. Keystrokes are never logged. Presets type a command but never press Enter.
 
 Do not expose port 4700 beyond your machine.
@@ -609,7 +615,7 @@ Shufler is built to be extended. Every outside tool it talks to sits behind a sm
 
 | Extension point | Works today | Planned or wanted | How to add one |
 |---|---|---|---|
-| **Terminals** | cmux, iTerm2, tmux | Ghostty, WezTerm, Kitty, Warp, Terminal.app, Linux and Windows terminals | One adapter file plus a registry entry, or a plug-in package. See [`docs/TERMINALS.md`](docs/TERMINALS.md) |
+| **Terminals** | cmux, iTerm2, tmux; no-terminal mode for any other | Ghostty, WezTerm, Kitty, Warp, Terminal.app, Linux and Windows terminals | One adapter file plus a registry entry, or a plug-in package. See [`docs/TERMINALS.md`](docs/TERMINALS.md) |
 | **Agent harnesses** | Claude Code, Codex CLI | Gemini CLI, Aider, OpenCode and other coding agents | An agent adapter under `daemon/shufler/adapters/agent/` that finds sessions and reads transcripts, or a plug-in package. See [`docs/AGENTS.md`](docs/AGENTS.md) |
 | **Skins** | Starship, Factory, Sky Islands, Theme Park, Casino | Community skins | A JSON recolour, or a code skin folder. See [`docs/SKINS.md`](docs/SKINS.md) |
 | **Code hosts and CI** | GitHub (`gh`) | GitLab, Bitbucket, other CI systems | An SCM adapter under `daemon/shufler/adapters/scm/`. Guide to come |
@@ -629,9 +635,7 @@ Ideas that are not built yet. Some are close, some are a wish list. If one matte
 - **More agent harnesses:** Gemini CLI, Aider, OpenCode.
 
 **Terminals**
-- **Works in any terminal.** A mode that needs no supported terminal: rows come straight from running agent sessions, and only send-and-focus are disabled.
 - **More terminals:** Ghostty, WezTerm, Kitty, Warp, Terminal.app, plus Linux and Windows.
-- **Greyed-out levers.** Buttons a terminal cannot support appear disabled rather than returning an error.
 - **Autostart for cmux users.** cmux only accepts connections from programs started inside it, so start-at-login does not reach it yet.
 
 **The world**

@@ -40,6 +40,27 @@ All notable changes to Shufler are recorded here. The format follows
   than beside the code. A clone behaves as before.
 - `shufler stop` and `status` only count a launchd job whose plist is in the
   current home directory.
+- Works in any terminal: `[terminal] kind = "none"` (offered by
+  `shufler setup`, and what `auto` falls back to when no supported terminal
+  is running or installed) draws one row per running `claude` or `codex`
+  session straight from `ps`, with state, model, tokens, questions and PRs as
+  usual. Sending, answering, skills, library send, Focus, new tabs and
+  terminal sync are off.
+- Greyed-out levers: the snapshot's `capabilities.terminal_caps` carries the
+  active terminal's capability flags (new flag `can_follow`), and the web app
+  shows every lever the terminal cannot pull as disabled with a tooltip that
+  says why: session and item panel buttons, answer options, dispatch boxes,
+  skill buttons, library sends, the palette, the `F` key, toast buttons and
+  the terminal sync switch. Auto-send of pinned context skips quietly.
+- Mock mode takes `?terminal=none` and `?caps_off=<flag>,...` to preview
+  those states without a daemon.
+
+### Changed
+
+- A refused terminal lever names the reason in plain words; in no-terminal
+  mode: "no supported terminal is configured ..., pick a terminal with
+  `shufler setup`". Additive contract changes: `capabilities.terminal_caps`,
+  the `none` terminal kind and source key, and the `can_follow` flag.
 
 ## [0.2.0] - 2026-10-28
 

@@ -10,6 +10,7 @@ import { contextPr, contextStation, fuzzy, runSkill } from './skills';
 import { openTerminal } from './terminals';
 import { useFocusTrap } from './focusTrap';
 import { focusLabel, useTerminalName } from '../lib/terminalName';
+import { leverOffReason } from '../lib/terminalCaps';
 import { toggleHorizon } from '../scene/horizon';
 
 export const usePalette = create<{ open: boolean; set: (open: boolean) => void }>()((set) => ({ open: false, set: (open) => set({ open }) }));
@@ -22,6 +23,8 @@ interface Row {
   target: string;
   skill?: Skill;
   needsArgs?: boolean;
+  /** Why the terminal cannot run it (greyed out, with this as the tooltip); null when it can. */
+  off?: string | null;
   run: (args: string) => void;
 }
 
@@ -67,6 +70,7 @@ export function Palette() {
         target: s.target ?? '',
         skill: s,
         needsArgs: !s.args_template && !!s.args_hint,
+        off: leverOffReason('run_skill', caps),
         run: (a) => runSkill(s, { station_id: station || null, pr: station && station !== contextStation() ? findStation(station)?.pr_numbers[0] ?? null : undefined, args: a || undefined }),
       });
     }
@@ -77,12 +81,13 @@ export function Palette() {
         title: p.label,
         sub: fillPrompt(p.text, contextPr()),
         target: '',
+        off: leverOffReason('dispatch', caps),
         run: () => station && requestAction('dispatch', { station_id: station, text: fillPrompt(p.text, contextPr()) }),
       });
     out.push(
       ...globalCommands(caps).map((c): Row => ({ key: `c:${c.id}`, kind: 'lever', title: c.label, sub: c.description, target: '', run: () => dispatch({ type: 'command_drawer', open: true, id: c.id }) })),
       { key: 'l:prod', kind: 'lever', title: 'Prod console', sub: 'Terminal with the production console command typed in', target: '', run: () => openTerminal({ title: 'Prod console', preset: 'prod_console' }) },
-      { key: 'l:focus', kind: 'lever', title: focusLabel(terminal), sub: 'Bring the session window forward', target: '', run: () => station && requestAction('focus', { station_id: station }) },
+      { key: 'l:focus', kind: 'lever', title: focusLabel(terminal), sub: 'Bring the session window forward', target: '', off: leverOffReason('focus', caps), run: () => station && requestAction('focus', { station_id: station }) },
       { key: 'l:needs', kind: 'lever', title: 'Show what needs me', sub: 'Dim everything else', target: '', run: () => dispatch({ type: 'preset', preset: 'needs' }) },
       { key: 'l:horizon', kind: 'lever', title: 'Horizon view', sub: 'Tilt the camera down to the sky and skyline, or back (H)', target: '', run: toggleHorizon },
     );
@@ -114,6 +119,7 @@ export function Palette() {
   const close = () => setOpen(false);
   const needsStation = (r: Row) => (r.kind === 'prompt' || r.key === 'l:focus' || (r.kind === 'skill' && !r.skill?.target)) && !station;
   const choose = (r: Row) => {
+    if (r.off) return; // greyed out: the row's tooltip says why
     if (needsStation(r)) {
       // say why nothing ran: point at the session picker
       setNeedPick(true);
@@ -168,11 +174,11 @@ export function Palette() {
             </div>
             <div className="palette-list" ref={list}>
               {shown.map((r, i) => (
-                <button key={r.key} className={`palette-row${i === idx ? ' on' : ''}${needsStation(r) ? ' disabled' : ''}`} onMouseEnter={() => setIdx(i)} onClick={() => choose(r)}>
+                <button key={r.key} className={`palette-row${i === idx ? ' on' : ''}${needsStation(r) || r.off ? ' disabled' : ''}`} aria-disabled={r.off ? true : undefined} title={r.off ?? undefined} onMouseEnter={() => setIdx(i)} onClick={() => choose(r)}>
                   <span className={`palette-kind kind-${r.kind}`}>{r.kind === 'skill' ? (r.skill?.pinned ? 'pinned' : 'skill') : r.kind}</span>
                   <span className="palette-title">{r.title}</span>
                   <span className="palette-sub">{r.sub}</span>
-                  <span className="palette-meta">{needsStation(r) ? 'pick a session' : r.target || (r.kind !== 'lever' ? stationTitle ?? '' : '')}</span>
+                  <span className="palette-meta">{r.off ? 'not available' : needsStation(r) ? 'pick a session' : r.target || (r.kind !== 'lever' ? stationTitle ?? '' : '')}</span>
                 </button>
               ))}
               {shown.length === 0 && <div className="muted pad">No match.</div>}

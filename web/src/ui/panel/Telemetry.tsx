@@ -4,6 +4,7 @@ import { dispatch, useWorld } from '../../store';
 import { duration, tokens } from '../../lib/format';
 import { Section, stationLampColor } from './common';
 import { requestAction } from '../requestAction';
+import { useLeverOff } from '../../lib/terminalCaps';
 import { tone } from '../tone';
 
 export function contextColor(pct: number | null | undefined): string {
@@ -74,6 +75,7 @@ export function FleetTable() {
   const stale = useWorld((s) => s.snapshot?.stale_ledger_rows ?? []);
   const stations = all?.filter((s) => !s.empty);
   const empties = all?.filter((s) => s.empty) ?? [];
+  const focusOff = useLeverOff('focus');
   const [sort, setSort] = useState<SortKey>('ctx');
   const [desc, setDesc] = useState(true);
   if (!stations) return null;
@@ -184,7 +186,7 @@ export function FleetTable() {
           {empties.map((s) => (
             <div key={s.id} className="fleet-extra">
               <span>{emptyWorkspaceLabel(s)}</span>
-              <button className="btn xs" onClick={() => requestAction('focus', { station_id: s.id })}>
+              <button className="btn xs" disabled={!!focusOff} title={focusOff ?? undefined} onClick={() => requestAction('focus', { station_id: s.id })}>
                 Focus
               </button>
             </div>

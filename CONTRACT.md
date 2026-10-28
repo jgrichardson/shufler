@@ -105,7 +105,7 @@ named `*_at` that come from GitHub or records are ISO 8601 strings. Absent data 
 
 `sources` has one entry per enabled source: `{ok, age, error?}` (`age` = seconds since the last successful
 read; `error` is at most 300 characters). A failing source never stops the others and keeps its last good
-data. Keys: the terminal adapter's name (`cmux`, `iterm2` or `tmux`), `groups`, `notes`, `intake`, `ledgers`,
+data. Keys: the terminal adapter's name (`cmux`, `iterm2`, `tmux` or `none`), `groups`, `notes`, `intake`, `ledgers`,
 `processes`, `transcripts`, `screens`, `skills`, `accounts`, `gh`, `gh_merged`, `gh_detail`, `ledger_branches`,
 `deploys`, `reviewer_watch`, `board`. A source that is off in the config is absent.
 
@@ -510,9 +510,13 @@ explicit.
 on the floor (`open_pr`, `open_preview` and `postmerge` also accept merged ones).
 
 **Terminal capabilities.** The configured terminal adapter declares `can_send`, `can_focus`, `can_read_screen`,
-`can_open` and `has_groups`. `focus` needs `can_focus`; `open_tab` needs `can_open`; `dispatch`,
+`can_open`, `has_groups` and `can_follow` (it marks the focused row, which drives Follow), published as
+`capabilities.terminal_caps`. `focus` needs `can_focus`; `open_tab` needs `can_open`; `dispatch`,
 `answer_question`, `postmerge`, `new_item`, `run_skill` and `library_send` need `can_send` and
-`can_read_screen`. A lever the terminal cannot do is refused with a plain message.
+`can_read_screen`. A lever the terminal cannot do is refused with a plain message (`POST /api/actions`: 422;
+preview: 400), and clients grey it out instead of offering it. With `[terminal] kind = "none"` every flag is
+off: rows are the running agent processes (one per tty, id `tty-<tty>` or `pid-<pid>`), each process carries
+its row id as its workspace id, there are no groups and `focused_station_id` is null.
 
 **Sending to a session** (`dispatch` and every action built on it). The daemon asks the terminal for the
 session's pane, reads the screen, and refuses if the agent's input box holds unsent text (`draft`). Otherwise it
@@ -539,7 +543,7 @@ every key. Sections:
 | Section | Keys and effect |
 |---|---|
 | `[app]` | `port`, `owner_aliases` (lower-case names meaning the person running Shufler; default `["me"]`), `actions_log`, `cache_dir` |
-| `[terminal]` | `kind` (`cmux`, `iterm2`, `tmux`, `auto`), `command_titles`, `utility`, `processes` |
+| `[terminal]` | `kind` (`cmux`, `iterm2`, `tmux`, `none`, `auto`; `auto` falls back to `none` when no terminal is running or installed), `command_titles`, `utility`, `processes` (no effect with `none`) |
 | `[cmux]`, `[iterm2]`, `[tmux]` | adapter options (`docs/TERMINALS.md`) |
 | `[agents]` | `enabled`: `"auto"` (default: Claude Code always, other harnesses when installed) or a list such as `["claude", "codex"]`; `SHUFLER_AGENTS` overrides it (`docs/AGENTS.md`) |
 | `[agent]`, `[[agent.accounts]]` | Claude Code: `adapter` (only `claude-code`); per account `name`, `label`, `projects_dir`, `claude_json`, `settings`, `usage_cache` |
@@ -566,7 +570,8 @@ every key. Sections:
 | Field | Meaning |
 |---|---|
 | `product` | the product name |
-| `terminal` | active terminal kind (`cmux`, `iterm2`, `tmux`) |
+| `terminal` | active terminal kind (`cmux`, `iterm2`, `tmux`, `none`) |
+| `terminal_caps` | `{can_send, can_focus, can_read_screen, can_open, has_groups, can_follow}` booleans for the active terminal (section 4, "Terminal capabilities"); absent from older daemons, where every flag counts as on |
 | `agent` | agent adapter (`claude-code`) |
 | `agents` | enabled agent harnesses, e.g. `["claude", "codex"]` |
 | `scm` | `github`, or null when `[scm] repo` is empty |

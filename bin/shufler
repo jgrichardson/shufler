@@ -70,7 +70,7 @@ cmd_dev() {
 
 config_target() { setting CONFIG "$HOME/.config/$NAME/config.toml"; }
 
-# Pick the terminal (cmux, iTerm2, tmux, ...) and write it to the config: interactive, or
+# Pick the terminal (cmux, iTerm2, tmux, none, ...) and write it to the config: interactive, or
 # --terminal KIND / --yes for scripts. Creates the config from config.example.toml when missing.
 cmd_setup() {
   sync_env
@@ -219,7 +219,7 @@ Shufler $(version): A 3D control room for developers who run many AI coding agen
 
 usage: $NAME <command>
   init [--force]        copy the example config to ~/.config/$NAME/config.toml
-  setup                 pick your terminal (cmux, iTerm2, tmux) and agent harnesses (--agents auto|claude,codex)
+  setup                 pick your terminal (cmux, iTerm2, tmux, none) and agent harnesses (--agents auto|claude,codex)
   start | stop          run or stop the daemon on http://$HOST:$PORT
   status                process, health, and the age of each source (terminal, agent harnesses, GitHub)
   dev                   daemon with reload plus the Vite dev server

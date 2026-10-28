@@ -189,7 +189,8 @@ def test_tmux_argv_builders():
 
 def test_registry_lists_every_adapter_with_the_contract():
     reg = registered()
-    assert list(REGISTRY) == ["cmux", "iterm2", "tmux"] and set(REGISTRY) <= set(reg)
+    assert list(REGISTRY) == ["cmux", "iterm2", "tmux", "none"] and set(REGISTRY) <= set(reg)
+    assert list(reg)[-1] == "none"  # after any plugin: auto-detect tries every real terminal first
     for kind, cls in REGISTRY.items():
         assert cls.name == kind and cls.label and isinstance(cls.CONFIG_DEFAULTS, dict)
         assert callable(cls.detect) and callable(cls.from_config)
@@ -218,6 +219,7 @@ def test_registry_reads_the_entry_point_group(monkeypatch):
     reg = registered()
     assert seen == ["shufler.terminals"]
     assert reg["wez"] is New and reg["kitty"] is Old and reg["cmux"] is CmuxAdapter
+    assert list(reg)[-1] == "none"
 
 
 def test_build_from_config_sections():
@@ -243,7 +245,7 @@ def test_auto_detect_prefers_running_then_installed(monkeypatch):
     fake({"cmux": (False, False), "iterm2": (False, False), "tmux": (True, False)})
     assert auto_kind({}) == "tmux"
     fake({"cmux": (False, False), "iterm2": (False, False), "tmux": (False, False)})
-    assert auto_kind({}) == "cmux"
+    assert auto_kind({}) == "none"  # no terminal found: rows straight from the running agent sessions
 
 
 # ---------------------------------------------------------------- capability gating and health

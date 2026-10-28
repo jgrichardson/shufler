@@ -14,8 +14,10 @@ owner_aliases = ["me"]                              # names in ledger "Ball" cel
 # cache_dir = "~/.cache/shufler"
 
 # ---------------------------------------------------------------- terminal
-# Which terminal hosts your agent sessions: "cmux", "iterm2", "tmux", or "auto" (the first one running, else the
-# first one installed). `shufler setup` writes this for you. docs/TERMINALS.md explains each mapping.
+# Which terminal hosts your agent sessions: "cmux", "iterm2", "tmux", "none", or "auto" (the first one running,
+# else the first one installed, else "none"). "none" works with any terminal: one row per running claude or codex
+# session, read from ps, with sending, answering, Focus and new tabs off. `shufler setup` writes this for you.
+# docs/TERMINALS.md explains each mapping.
 [terminal]
 kind = "auto"
 # Workspace titles treated as the control room (they get the "command" domain).
@@ -25,6 +27,7 @@ command_titles = []
 utility = []
 # utility = ["SHARED"]
 # Read running agent processes (`claude`, `codex`) every 10 s (ps + lsof) to tell open sessions from closed ones.
+# With kind = "none" the processes are the rows, so they are always read (every 3 s) and this has no effect.
 processes = true
 
 [cmux]

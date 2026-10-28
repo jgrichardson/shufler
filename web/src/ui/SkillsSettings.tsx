@@ -1,3 +1,4 @@
+import { useFlagOff } from '../lib/terminalCaps';
 import { useEffect, useMemo, useState } from 'react';
 import { create } from 'zustand';
 import type { Skill, SkillPlacement } from '../types';
@@ -35,6 +36,7 @@ function GeneralSettings() {
   const setReduced = useMotion((s) => s.setReduced);
   const prefs = usePrefs();
   const following = prefs.terminalFollow === 'select';
+  const syncOff = useFlagOff('can_follow');
   return (
     <div className="settings-general">
       <div className="settings-section-title">Terminal sync</div>
@@ -51,7 +53,9 @@ function GeneralSettings() {
           ]}
         />
         <span className="muted small">
-          {prefs.terminalFollow === 'select'
+          {syncOff
+            ? syncOff
+            : prefs.terminalFollow === 'select'
             ? 'The session becomes the selection, so the rest greys out if that is on below.'
             : prefs.terminalFollow === 'mark'
               ? 'A marker shows which session the terminal is on; the world stays fully in view.'

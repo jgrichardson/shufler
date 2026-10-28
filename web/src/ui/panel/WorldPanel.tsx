@@ -3,6 +3,7 @@ import { SkillButtons } from './SkillButtons';
 import { useState } from 'react';
 import type { YourMove } from '../../types';
 import { capOn, dispatch, findItemByPr, useCaps, useWorld } from '../../store';
+import { useLeverOff } from '../../lib/terminalCaps';
 import { openTerminal } from '../terminals';
 import { domainDef, PHASES, PHASE_SHORT } from '../../lib/domains';
 import { PHASE_ACCENT } from '../../lib/colors';
@@ -31,12 +32,14 @@ function MoveRow({ m }: { m: YourMove }) {
     else if (station) dispatch({ type: 'select', selection: station });
   };
   const acks = ackTargets(m);
-  let primary: { label: string; run: () => void } | null = null;
+  const sendOff = useLeverOff('postmerge');
+  const focusOff = useLeverOff('focus');
+  let primary: { label: string; run: () => void; off?: string | null } | null = null;
   if (m.kind === 'merge' && item) primary = { label: 'Review merge', run: open };
-  else if (m.kind === 'closeout' && m.pr != null) primary = { label: 'Draft close-out', run: () => requestAction('postmerge', { pr: m.pr!, ...(m.station_id ? { station_id: m.station_id } : {}) }) };
+  else if (m.kind === 'closeout' && m.pr != null) primary = { label: 'Draft close-out', run: () => requestAction('postmerge', { pr: m.pr!, ...(m.station_id ? { station_id: m.station_id } : {}) }), off: sendOff };
   else if (m.kind === 'question') primary = { label: 'Answer', run: open };
   else if (m.kind === 'reply') primary = { label: 'Reply', run: open };
-  else if (station) primary = { label: 'Focus', run: () => requestAction('focus', { station_id: station.id }) };
+  else if (station) primary = { label: 'Focus', run: () => requestAction('focus', { station_id: station.id }), off: focusOff };
   return (
     <div className={`move-row sev-${m.severity}`} onClick={open} role="button" tabIndex={0}>
       <span className={`move-tag kind-${m.kind}`}>{m.kind === 'question' && qkind === 'approval' ? 'Approval' : MOVE_TAG[m.kind]}</span>
@@ -52,7 +55,7 @@ function MoveRow({ m }: { m: YourMove }) {
       <span className={`move-age${age > 1800 ? ' old' : ''}`}>{moveAge(m.since)}</span>
       <span className="move-actions" onClick={(e) => e.stopPropagation()}>
         {primary && (
-          <button className="btn xs primary" onClick={primary.run}>
+          <button className="btn xs primary" disabled={!!primary.off} title={primary.off ?? undefined} onClick={primary.run}>
             {primary.label}
           </button>
         )}
@@ -89,6 +92,7 @@ function Sources() {
 function AssignRow({ pr, title }: { pr: number; title: string }) {
   const stations = useWorld((s) => s.snapshot?.stations);
   const [to, setTo] = useState('');
+  const off = useLeverOff('dispatch');
   return (
     <div className="assign-row">
       <span className="mono">#{pr}</span>
@@ -101,7 +105,7 @@ function AssignRow({ pr, title }: { pr: number; title: string }) {
           </option>
         ))}
       </select>
-      <button className="btn xs" disabled={!to} onClick={() => requestAction('dispatch', { station_id: to, text: `Take ownership of #${pr}: read it, then set your session note to its state.` })}>
+      <button className="btn xs" disabled={!to || !!off} title={off ?? undefined} onClick={() => requestAction('dispatch', { station_id: to, text: `Take ownership of #${pr}: read it, then set your session note to its state.` })}>
         Assign
       </button>
     </div>
@@ -110,10 +114,11 @@ function AssignRow({ pr, title }: { pr: number; title: string }) {
 
 function NewItem() {
   const [text, setText] = useState('');
+  const off = useLeverOff('new_item');
   return (
     <div className="reply-row">
       <input className="input" placeholder="A link, or describe the work" value={text} onChange={(e) => setText(e.target.value)} />
-      <button className="btn" disabled={!text.trim()} onClick={() => requestAction('new_item', { text: text.trim() })}>
+      <button className="btn" disabled={!text.trim() || !!off} title={off ?? undefined} onClick={() => requestAction('new_item', { text: text.trim() })}>
         Start
       </button>
     </div>
