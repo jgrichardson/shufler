@@ -9,6 +9,7 @@ import { usePalette } from './Palette';
 import { useSettings } from './SkillsSettings';
 import { useLayers } from './layers';
 import { toggleHorizon } from '../scene/horizon';
+import { toggleLayout } from './worldLayout';
 
 function typing(el: EventTarget | null): boolean {
   const t = el as HTMLElement | null;
@@ -119,6 +120,9 @@ export function useKeyboard(): string | null {
         case 'h':
         case 'H':
           return toggleHorizon();
+        case 'i':
+        case 'I':
+          return toggleLayout();
         case 'n':
         case 'N': {
           const moves = snap?.your_move ?? [];

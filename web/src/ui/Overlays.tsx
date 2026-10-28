@@ -17,6 +17,7 @@ import { ago, duration } from '../lib/format';
 import { workingCount } from '../lib/derive';
 import { harnessLabel } from '../lib/library';
 import { itemLabel, owedText } from './panel/common';
+import { LayoutSwitch } from './LayoutSwitch';
 
 export function Toasts() {
   const toasts = useWorld((s) => s.toasts);
@@ -191,6 +192,7 @@ export function TopBar() {
           </button>
         ))}
       </div>
+      <LayoutSwitch />
       <SkinSwitch />
       <ThemeButton />
     </header>
@@ -295,6 +297,7 @@ const KEYS: [string, string][] = [
   ['Arrows / + -', 'Pan / zoom'],
   ['Click', 'Select a session, row, column or item; everything else greys out and the view stays put'],
   ['P', 'Pipeline board on and off (kanban by district)'],
+  ['I', 'Big islands on and off: one island per session with its own loop of track'],
   ['N / Shift+N', 'Next / previous item in Your move'],
   ['J / K', 'Next / previous item in the pipeline'],
   ['D / Shift+D', 'Highlight the next / previous domain'],

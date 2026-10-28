@@ -48,20 +48,24 @@ export function overviewFrame(
   layout: SceneLayout | null,
   view: { width: number; height: number; panel: boolean } = { width: 1600, height: 1000, panel: true },
 ): { pos: THREE.Vector3; target: THREE.Vector3 } {
-  const minZ = layout ? layout.bounds.minZ - 16 : -90;
-  const maxZ = layout ? layout.bounds.maxZ + 6 : 6;
+  // big islands frame their own footprint (and the warehouse); the grid frames rows, landmarks and dock
+  const fr = layout?.frame;
+  const minX = fr ? Math.min(WORLD_MIN_X, fr.minX - 4) : WORLD_MIN_X;
+  const minZ = fr ? fr.minZ - 6 : layout ? layout.bounds.minZ - 16 : -90;
+  const maxZ = fr ? fr.maxZ + 2 : layout ? layout.bounds.maxZ + 6 : 6;
   const cam = new THREE.PerspectiveCamera(FOV, view.width / Math.max(1, view.height), 1, 4000);
   cam.filmGauge = 35;
   cam.filmOffset = view.panel ? (PANEL_FRACTION / 2) * cam.getFilmWidth() : 0;
   cam.updateProjectionMatrix();
   const corners: THREE.Vector3[] = [];
-  for (const x of [WORLD_MIN_X, worldMaxX()]) for (const z of [minZ, maxZ]) for (const y of [SKY_Y - 8, SKY_Y + 16]) corners.push(new THREE.Vector3(x, y, z));
+  for (const x of [minX, worldMaxX()]) for (const z of [minZ, maxZ]) for (const y of fr ? [SKY_Y - 6, SKY_Y + 8] : [SKY_Y - 8, SKY_Y + 16]) corners.push(new THREE.Vector3(x, y, z));
   // usable rectangle in NDC
   const toNdcX = (px: number) => (px / view.width) * 2 - 1;
   const toNdcY = (py: number) => 1 - (py / view.height) * 2;
   const usableRight = view.width * (view.panel ? 1 - PANEL_FRACTION : 1) - FRAME_MARGIN.side;
-  const box = { l: toNdcX(FRAME_MARGIN.left), r: toNdcX(usableRight), t: toNdcY(FRAME_MARGIN.top), b: toNdcY(view.height - FRAME_MARGIN.bottom) };
-  const target = new THREE.Vector3((WORLD_MIN_X + worldMaxX()) / 2, SKY_Y - 2, (minZ + maxZ) / 2);
+  // big islands carry their name tags; no row-header column to keep clear on the left
+  const box = { l: toNdcX(fr ? FRAME_MARGIN.side + 16 : FRAME_MARGIN.left), r: toNdcX(usableRight), t: toNdcY(FRAME_MARGIN.top), b: toNdcY(view.height - FRAME_MARGIN.bottom) };
+  const target = new THREE.Vector3((minX + worldMaxX()) / 2, SKY_Y - 2, (minZ + maxZ) / 2);
   let dist = 300;
   const v = new THREE.Vector3();
   for (let i = 0; i < 40; i++) {
@@ -101,8 +105,10 @@ export function horizonFrame(
   layout: SceneLayout | null,
   view: { width: number; height: number; panel: boolean } = { width: 1600, height: 1000, panel: true },
 ): { pos: THREE.Vector3; target: THREE.Vector3 } {
-  const minZ = layout ? layout.bounds.minZ - 6 : -90;
-  const maxZ = layout ? layout.bounds.maxZ + 4 : 6;
+  // big islands frame their own footprint, as the Overview does; the grid frames its rows
+  const fr = layout?.frame;
+  const minZ = fr ? fr.minZ - 4 : layout ? layout.bounds.minZ - 6 : -90;
+  const maxZ = fr ? fr.maxZ + 2 : layout ? layout.bounds.maxZ + 4 : 6;
   const pitch = (HORIZON_PITCH_DEG * Math.PI) / 180;
   const dir = new THREE.Vector3(0, Math.sin(pitch), Math.cos(pitch));
   const up = new THREE.Vector3(0, Math.cos(pitch), -Math.sin(pitch));
@@ -113,14 +119,15 @@ export function horizonFrame(
   cam.updateProjectionMatrix();
   // the row floor only, from the first island to the last stage: landmarks and arches may rise into the
   // skyline band (that is the point) and the warehouse may run off behind the panel
-  const minX = layout?.islands.length ? Math.min(...layout.islands.map((i) => i.center[0] - i.radius)) - 2 : WORLD_MIN_X;
-  const maxX = skywayEndX() + 6;
+  const minX = fr ? fr.minX - 2 : layout?.islands.length ? Math.min(...layout.islands.map((i) => i.center[0] - i.radius)) - 2 : WORLD_MIN_X;
+  const maxX = fr ? fr.maxX + 2 : skywayEndX() + 6;
   const corners: THREE.Vector3[] = [];
   for (const x of [minX, maxX]) for (const z of [minZ, maxZ]) for (const y of [SKY_Y - 6, SKY_Y + 2]) corners.push(new THREE.Vector3(x, y, z));
   const toNdcX = (px: number) => (px / view.width) * 2 - 1;
   const toNdcY = (py: number) => 1 - (py / view.height) * 2;
   const usableRight = view.width * (view.panel ? 1 - PANEL_FRACTION : 1) - FRAME_MARGIN.side;
-  const box = { l: toNdcX(FRAME_MARGIN.left), r: toNdcX(usableRight), t: HORIZON_ROWS_TOP, b: toNdcY(view.height - FRAME_MARGIN.bottom) };
+  // big islands carry their name tags; no row-header column to keep clear on the left
+  const box = { l: toNdcX(fr ? FRAME_MARGIN.side + 16 : FRAME_MARGIN.left), r: toNdcX(usableRight), t: HORIZON_ROWS_TOP, b: toNdcY(view.height - FRAME_MARGIN.bottom) };
   const centre = new THREE.Vector3((minX + maxX) / 2, SKY_Y, (minZ + maxZ) / 2);
   let dist = 260;
   let sx = 0;
@@ -166,6 +173,13 @@ interface Flight {
   fromFov: number;
   toFov: number;
 }
+
+/** The four edges of a big island at its top, for framing. */
+const islandCorners = (isl: SceneLayout['islands'][number]) => {
+  const [x, , z] = isl.center;
+  const hx = isl.radius * isl.stretch;
+  return [new THREE.Vector3(x - hx, isl.top, z), new THREE.Vector3(x + hx, isl.top, z), new THREE.Vector3(x, isl.top + 6, z - isl.radius), new THREE.Vector3(x, isl.top, z + isl.radius)];
+};
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
@@ -350,7 +364,11 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
       const rows = layout.islands.filter((i) => layout.lanes[i.lane ?? -1]?.domain.id === sel.id);
       if (rows.length) {
         const endX = GATE_X[PHASES[PHASES.length - 1]];
-        const pts = rows.flatMap((isl) => [new THREE.Vector3(...isl.center), new THREE.Vector3(endX, SKY_Y, isl.center[2])]);
+        const pts = rows.flatMap((isl) =>
+          isl.track
+            ? islandCorners(isl)
+            : [new THREE.Vector3(...isl.center), new THREE.Vector3(endX, SKY_Y, isl.center[2])],
+        );
         const f = frameBox(pts, HERO_DIR, 60);
         fly(f.target, f.pos);
       }
@@ -378,6 +396,10 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
       const pts = [new THREE.Vector3(x - r, y - 2, z - r), new THREE.Vector3(x + r, y + LIBRARY.height * LIBRARY.scale, z + r)];
       for (const isl of layout.islands) pts.push(new THREE.Vector3(...isl.center));
       const f = frameBox(pts, HERO_DIR, 50);
+      fly(f.target, f.pos);
+    } else if (sel.kind === 'gate' && layout.mode === 'islands') {
+      // a stage's pods are spread over every island
+      const f = overviewFrame(layout, view);
       fly(f.target, f.pos);
     } else if (sel.kind === 'gate') {
       const x = GATE_X[sel.phase] + 1;
@@ -430,7 +452,13 @@ export function CameraRig({ layout }: { layout: SceneLayout | null }) {
     const c = controls.current;
     if (!horizonSeq || !layout || !c) return;
     const seconds = reducedMotion() ? REDUCED_SECONDS : HORIZON_SECONDS;
-    if (useHorizon.getState().on) {
+    const { on, reframed } = useHorizon.getState();
+    if (on && reframed) {
+      // the layout changed under the horizon view: re-frame it, and leaving it later opens the new layout's Overview
+      beforeHorizon.current = null;
+      const h = horizonFrame(layout, view);
+      fly(h.target, h.pos, reducedMotion() ? REDUCED_SECONDS : 1.0, HORIZON_FOV);
+    } else if (on) {
       // keep the view being left (where a flight was heading, if one is under way), then tilt down to the skyline
       const f = flight.current;
       beforeHorizon.current = f ? { pos: f.toPos.clone(), target: f.toTarget.clone() } : { pos: camera.position.clone(), target: c.target.clone() };

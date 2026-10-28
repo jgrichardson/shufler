@@ -11,6 +11,10 @@ import { Dimmable } from './Dimmable';
 import { strip } from './StripProjector';
 import { outside, type Focus } from './focus';
 import { BAND_W, LANDMARK, RAMP_END_X, SKY_Y, skywayEndX, cellX, gateArchX, type SceneLayout } from './layout';
+import { BOULEVARD_SINK, islandsK, morphK } from './morph';
+
+/** Ramps fade with their row islands in Pipeline mode, and with the boulevard under big islands. */
+const rampFade = () => Math.max(morphK(), islandsK());
 
 /** Bridge from the island's edge up to the start of its lane. */
 function Ramp({ from, z, color }: { from: [number, number]; z: number; color: string }) {
@@ -35,10 +39,13 @@ function Gate({ phase, zBack, active, lit }: { phase: Exclude<Phase, 'shipped'>;
   useEffect(() => () => strip.cells.get(phase)?.classList.remove('is-hot'), [phase]);
   const glowMat = useMemo(() => new THREE.MeshBasicMaterial({ color: new THREE.Color(accent).multiplyScalar(hovered ? 3.2 : active ? 2.4 : 1.4), toneMapped: false }), [accent, active, hovered]);
   const onClick = (e: ThreeEvent<MouseEvent>) => {
+    // gone with the boulevard under big islands
+    if (islandsK() > 0.5) return;
     e.stopPropagation();
     dispatch({ type: 'select', selection: { kind: 'gate', phase } });
   };
   const onOver = (e: ThreeEvent<PointerEvent>) => {
+    if (islandsK() > 0.5) return;
     e.stopPropagation();
     document.body.style.cursor = 'pointer';
     setHovered(true);
@@ -74,6 +81,8 @@ export function Skyway({ layout, gateSelected, litPhases, ramps = true, focus }:
   const offLane = (i: number | null) => outside(focus?.lanes, i, focus);
   return (
     <group>
+      {/* the boulevard steps aside for big islands */}
+      <MorphFade amount={islandsK} sink={BOULEVARD_SINK} vanish>
       {PHASES.map((p, i) => (
         <Dimmable key={p} on={offPhase(p)}>
           <group position={[cellX(p), SKY_Y, (bandFront + bandBack) / 2]}>
@@ -90,8 +99,16 @@ export function Skyway({ layout, gateSelected, litPhases, ramps = true, focus }:
           </Dimmable>
         ))}
       </MorphSqueeze>
+      <MorphShift dz={layout.pipe.backZ - zBack}>
+        {PHASES.map((p) => (
+          <Dimmable key={p} on={offPhase(p)}>
+            <Gate phase={p} zBack={zBack} active={gateSelected === p} lit={litPhases.has(p)} />
+          </Dimmable>
+        ))}
+      </MorphShift>
+      </MorphFade>
       {ramps && (
-        <MorphFade>
+        <MorphFade amount={rampFade}>
           {layout.islands
             .filter((i) => i.lane != null)
             .map((isl) => (
@@ -101,13 +118,6 @@ export function Skyway({ layout, gateSelected, litPhases, ramps = true, focus }:
             ))}
         </MorphFade>
       )}
-      <MorphShift dz={layout.pipe.backZ - zBack}>
-        {PHASES.map((p) => (
-          <Dimmable key={p} on={offPhase(p)}>
-            <Gate phase={p} zBack={zBack} active={gateSelected === p} lit={litPhases.has(p)} />
-          </Dimmable>
-        ))}
-      </MorphShift>
     </group>
   );
 }
