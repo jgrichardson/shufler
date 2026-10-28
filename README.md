@@ -172,15 +172,16 @@ Toggle islands, sessions, PRs, conflicts, red alerts, tethers and beams, and cho
 
 ### Skins
 
-Five skins ship with the app. Switch live from the top bar or Settings, or write your own (see [`docs/SKINS.md`](docs/SKINS.md)).
+Six skins ship with the app. Switch live from the top bar or Settings, or write your own (see [`docs/SKINS.md`](docs/SKINS.md)).
 
 - **Starship**, the default: a sleek station in orbit, with lacquered hull modules, graphite decks and ice-blue light over a planet.
 - **Factory**: the original factory in the sky, with grass islands, pastel workshops and a warehouse under a quiet horizon.
 - **Sky Islands**: floating rock islands at dusk, with stone towers, plank bridges and rail cars over a sea of clouds.
 - **Theme Park**: a park at golden hour or under string lights, with coaster track for rows, ride stations for stages and a gift shop for shipped work.
 - **Casino**: a card room, with felt tables for rows, playing cards for work items, slot machines for sessions and a cashier for shipped work.
+- **Command Post**: a field base on a living map, with compounds for rows, command tents for sessions, supply convoys for work items and a depot with a helipad for shipped work. Logistics and ops only.
 
-<img src="docs/images/features/skins-grid.png" width="100%" alt="All five skins side by side, dark on the top row and light on the bottom: Starship, Factory, Sky Islands, Theme Park and Casino">
+<img src="docs/images/features/skins-grid.png" width="100%" alt="All six skins side by side, dark on the top row and light on the bottom: Starship, Factory, Sky Islands, Theme Park, Casino and Command Post">
 
 <img src="docs/images/gifs/skins.gif" width="820" alt="Switching skins live from Starship to Factory, Sky Islands, Theme Park, Casino and back">
 
@@ -486,7 +487,7 @@ A grant can be pinned or once, and targets one session, a whole domain or everyt
 
 ### Skins and themes
 
-Starship is the default. Factory, Sky Islands, Theme Park and Casino are the others. Switch in the top bar, in **Settings → Appearance**, or with `?skin=<id>` in the URL. Dark, light and system themes are in Settings. You can import a JSON recolour or write a code skin. See [`docs/SKINS.md`](docs/SKINS.md).
+Starship is the default. Factory, Sky Islands, Theme Park, Casino and Command Post are the others. Switch in the top bar, in **Settings → Appearance**, or with `?skin=<id>` in the URL. Dark, light and system themes are in Settings. You can import a JSON recolour or write a code skin. See [`docs/SKINS.md`](docs/SKINS.md).
 
 | | Dark | Light |
 |---|---|---|
@@ -495,6 +496,7 @@ Starship is the default. Factory, Sky Islands, Theme Park and Casino are the oth
 | **Sky Islands** | <img src="docs/images/skyislands-dark.png" alt="Sky Islands skin, dark theme"> | <img src="docs/images/skyislands-light.png" alt="Sky Islands skin, light theme"> |
 | **Theme Park** | <img src="docs/images/themepark-dark.png" alt="Theme Park skin, dark theme"> | <img src="docs/images/themepark-light.png" alt="Theme Park skin, light theme"> |
 | **Casino** | <img src="docs/images/casino-dark.png" alt="Casino skin, dark theme"> | <img src="docs/images/casino-light.png" alt="Casino skin, light theme"> |
+| **Command Post** | <img src="docs/images/commandpost-dark.png" alt="Command Post skin, dark theme"> | <img src="docs/images/commandpost-light.png" alt="Command Post skin, light theme"> |
 
 ![Settings drawer with the skin picker and theme switch](docs/images/settings-skins.png)
 
@@ -540,7 +542,7 @@ Press `?` in the app for the full list.
 | External review | A reviewer bot, by GitHub login and an optional watcher command | |
 | Work items | Intake records, area ledgers, a board CLI (all optional) | |
 | Custom commands | Any argv you configure, with a form and a confirm step | |
-| Skins | Starship, Factory, Sky Islands, Theme Park, Casino, JSON recolours, code skins | |
+| Skins | Starship, Factory, Sky Islands, Theme Park, Casino, Command Post, JSON recolours, code skins | |
 
 Also planned: `restart`, `logs` and `doctor` commands, and starting a new session from the UI with harness, account, model and effort.
 
@@ -575,7 +577,7 @@ Do not expose port 4700 beyond your machine.
                  GET /api/snapshot   /ws   POST /api/actions
                             |
         web: Vite + React + react-three-fiber + zustand
-        skins (Starship, Factory, Sky Islands, Theme Park, Casino) draw the scene
+        skins (Starship, Factory, Sky Islands, Theme Park, Casino, Command Post) draw the scene
 ```
 
 - **Daemon** (`daemon/shufler/`). Python 3.11 or newer. Collectors poll each source on its own interval in worker threads. One failing source shows as an error on that source and never stops the rest. The snapshot is built by pure functions, so tests use fixtures. The WebSocket sends the full snapshot on connect, then on every change.
@@ -624,7 +626,7 @@ Shufler is built to be extended. Every outside tool it talks to sits behind a sm
 |---|---|---|---|
 | **Terminals** | cmux, iTerm2, tmux; no-terminal mode for any other | Ghostty, WezTerm, Kitty, Warp, Terminal.app, Linux and Windows terminals | One adapter file plus a registry entry, or a plug-in package. See [`docs/TERMINALS.md`](docs/TERMINALS.md) |
 | **Agent harnesses** | Claude Code, Codex CLI | Gemini CLI, Aider, OpenCode and other coding agents | An agent adapter under `daemon/shufler/adapters/agent/` that finds sessions and reads transcripts, or a plug-in package. See [`docs/AGENTS.md`](docs/AGENTS.md) |
-| **Skins** | Starship, Factory, Sky Islands, Theme Park, Casino | Community skins | A JSON recolour, or a code skin folder. See [`docs/SKINS.md`](docs/SKINS.md) |
+| **Skins** | Starship, Factory, Sky Islands, Theme Park, Casino, Command Post | Community skins | A JSON recolour, or a code skin folder. See [`docs/SKINS.md`](docs/SKINS.md) |
 | **Code hosts and CI** | GitHub (`gh`) | GitLab, Bitbucket, other CI systems | An SCM adapter under `daemon/shufler/adapters/scm/`. Guide to come |
 | **Review bots** | Any bot that comments on PRs, set up in `[reviewer]` | Ready-made presets for common review bots | Config only today |
 | **Trackers and boards** | Intake files, a board CLI, area ledgers | Linear, Jira, GitHub Issues | Tracker adapters under `daemon/shufler/adapters/tracker/`. Guide to come |

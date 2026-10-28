@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { World } from './World';
 import { CameraRig } from './CameraRig';
 import { DevProbe } from './DevProbe';
+import { RenderStats, STATS } from './RenderStats';
 import { useLayout } from './useLayout';
 import { dispatch } from '../store';
 import { useResolvedTheme, useSkin, useSkinScene } from '../skins/store';
@@ -78,6 +79,7 @@ export function Scene() {
       <Rig />
       {!NO_FX && <Effects key={`fx-${skin.id}-${theme}`} fx={scene.fx} />}
       {import.meta.env.DEV && !NO_FX && <DevProbe />}
+      {import.meta.env.DEV && STATS && <RenderStats />}
     </Canvas>
   );
 }
