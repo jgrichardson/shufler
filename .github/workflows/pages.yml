@@ -1,0 +1,47 @@
+name: Demo site
+
+# Publishes the web app as a static demo on GitHub Pages. VITE_DEMO=1 makes the build run on built-in
+# sample data only (the same data as ?mock=1): it never contacts a daemon and every action is simulated.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: npx tsc --noEmit
+      - run: npx vite build
+        env:
+          SHUFLER_BASE: /${{ github.event.repository.name }}/
+          VITE_DEMO: '1'
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

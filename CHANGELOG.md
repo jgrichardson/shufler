@@ -4,6 +4,14 @@ All notable changes to Shufler are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- A hosted demo on GitHub Pages (https://jgrichardson.github.io/shufler/): the web app on built-in sample data, with
+  no daemon and every action simulated. `VITE_DEMO=1` and `SHUFLER_BASE` build it; `.github/workflows/pages.yml`
+  publishes it on every push to `main`.
+
 ## [0.2.0] - 2026-10-28
 
 ### Added
@@ -68,5 +76,6 @@ The first public release.
   commands, all configured in `~/.config/shufler/config.toml`.
 - A mock mode (`?mock=1`) for trying it without any setup.
 
+[Unreleased]: https://github.com/jgrichardson/shufler/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/jgrichardson/shufler/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jgrichardson/shufler/releases/tag/v0.1.0
