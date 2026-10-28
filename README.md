@@ -200,6 +200,10 @@ Press `?` for every shortcut. See [Keyboard shortcuts](#keyboard-shortcuts) belo
 
 A drawer of local shells, for a console you want next to the scene. At most six, closed after two hours idle.
 
+### Agent access (MCP)
+
+`bin/shufler mcp` is an MCP server for Claude Code and Codex, so your agents can ask Shufler what is running: `status`, `needs_you`, `get_pr`, `read_session` and `list_work_items`, all read-only. An opt-in second tier lets an agent preview a prompt or an answer for another session and send it only through a separate confirm call. `bin/shufler mcp --print-config` prints the setup lines. See [`docs/MCP.md`](docs/MCP.md).
+
 ## Status
 
 Shufler is early software, version 0.2.0. It was built for one developer's setup and is being opened up.
@@ -330,6 +334,7 @@ Everything machine-specific lives in one TOML file. The daemon looks for it in t
 | `[agent] adapter` | `claude-code` | Claude Code adapter settings. Only `claude-code` exists |
 | `[[agent.accounts]]` | one personal account | One entry per Claude Code config directory: `projects_dir`, `claude_json`, `settings`, `usage_cache` |
 | `[codex]` | `~/.codex` | Codex CLI: `home` (where `sessions/` lives, or `$CODEX_HOME`) and `bin` |
+| `[mcp] allow_dispatch` | `false` | Offer the MCP dispatch tools (`send_prompt`, `answer_question`, `confirm_dispatch`). See [`docs/MCP.md`](docs/MCP.md) |
 | `[scm] repo` | empty | `owner/name` of your GitHub repo, such as `your-org/your-repo`. Empty turns PR sources off |
 | `[scm] deploy_workflow` | empty | Workflow file that deploys to production. Empty turns deploy tracking off |
 | `[scm] deploy_branch` | `main` | Branch whose merges count as deployable |
@@ -550,6 +555,7 @@ Also planned: `restart`, `logs` and `doctor` commands, and starting a new sessio
 - **Custom commands** run exactly the argv you configured. Shufler cannot tell a read from a write, so only configure commands you trust, and mark production ones `prod = true`.
 - **Processes.** Every 10 seconds (3 in no-terminal mode) the daemon lists running `claude` and `codex` processes with `ps`, and reads each new one's working directory (`lsof`) and terminal id from its environment (`ps -E`) to match it to a row. Only those fields are kept. Turn it off with `[terminal] processes = false`, except in no-terminal mode, where the processes are the rows.
 - **Levers the terminal cannot pull** (no-terminal mode, or a terminal adapter without that capability) are greyed out with the reason in their tooltip, and the daemon refuses them if called anyway. Nothing is typed, focused or opened.
+- **Agent access (MCP).** `bin/shufler mcp` gives your agents the floor's facts and, through `read_session`, other sessions' recent messages. Text from one session can carry instructions aimed at another (prompt injection), so treat it as data. The dispatch tools that type into other sessions are off unless you set `[mcp] allow_dispatch = true`; they preview first, send only on a second `confirm_dispatch` call, refuse never-do text, control characters and a session prompting itself, and are rate-limited. Keep `confirm_dispatch` off your harness's auto-allow list so you approve each send. The threat model is in [`docs/MCP.md`](docs/MCP.md).
 - **Built-in terminals** are real shells on your machine: at most 6, closed after 2 hours idle. Keystrokes are never logged. Presets type a command but never press Enter.
 
 Do not expose port 4700 beyond your machine.
@@ -594,6 +600,7 @@ A packaged install runs these as `shufler <command>`; from a clone they are `bin
 | `shufler serve [--port N]` | Run the daemon in the foreground, for launchd and `brew services` |
 | `bin/shufler test [args]` | Run the daemon tests with pytest |
 | `bin/shufler library ...` | Manage the context library: `add`, `list`, `grant`, `send` |
+| `bin/shufler mcp` | Run the MCP server on stdio for your agents. `--print-config` prints the Claude Code and Codex setup. See [`docs/MCP.md`](docs/MCP.md) |
 | `bin/shufler version` | Print the version |
 
 ## Development
@@ -622,7 +629,7 @@ Shufler is built to be extended. Every outside tool it talks to sits behind a sm
 | **Review bots** | Any bot that comments on PRs, set up in `[reviewer]` | Ready-made presets for common review bots | Config only today |
 | **Trackers and boards** | Intake files, a board CLI, area ledgers | Linear, Jira, GitHub Issues | Tracker adapters under `daemon/shufler/adapters/tracker/`. Guide to come |
 | **Custom commands** | Any command you define in `[[commands]]` | Shared command packs | Config only |
-| **Agent access (MCP)** | Not yet | An MCP server so your agents can ask Shufler what is running and what is waiting on you | Planned |
+| **Agent access (MCP)** | Read-only tools, plus opt-in dispatch with a confirm step | A foreman agent that watches the floor | A tool in `daemon/shufler/mcp_server.py`, built on the daemon's HTTP API. See [`docs/MCP.md`](docs/MCP.md) |
 
 To add an adapter today: put a module beside the existing ones, implement its Protocol, register it, add its keys to `daemon/config.example.toml`, and write tests against fixture output. See [`CONTRIBUTING.md`](CONTRIBUTING.md). If you want to build one of the planned items, open an issue first so we can agree on the shape.
 
@@ -631,7 +638,7 @@ To add an adapter today: put a module beside the existing ones, implement its Pr
 Ideas that are not built yet. Some are close, some are a wish list. If one matters to you, open an issue or pick it up.
 
 **Agents**
-- **MCP server.** Let your agents ask Shufler what is running, what is waiting on you, and whether a PR is green, through read-only tools such as `status`, `needs_you`, `get_pr` and `read_session`. A "foreman" agent could watch the whole floor for you. A second, opt-in tier would let an agent dispatch a prompt or answer a question in another session, with the same preview step the app uses.
+- **A foreman agent.** One agent that watches the whole floor through the MCP tools and nudges sessions that are stuck or waiting on something, with every nudge still going through the confirm step. Not built yet.
 - **More agent harnesses:** Gemini CLI, Aider, OpenCode.
 
 **Terminals**

@@ -4,19 +4,19 @@ All notable changes to Shufler are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-10-28
 
 ### Added
 
 - Packaged installs. The daemon builds as a wheel and sdist named `shufler`
   that carry the built web app, so `pipx install` or `uv tool install` of a
   release wheel gives a working `shufler` command with no clone, Bun or Node.
-  Shufler is not on PyPI yet; the wheel is attached to the GitHub release.
+  Shufler is not on PyPI; the wheel is attached to the GitHub release.
 - A `shufler` command for packaged installs, with the same commands as
   `bin/shufler` (`init`, `setup`, `start`, `stop`, `status`, `install`,
-  `uninstall`, `library`, `version`) plus `serve`, which runs the daemon in
-  the foreground for launchd and `brew services`. `python -m shufler` works
-  too.
+  `uninstall`, `library`, `mcp`, `version`) plus `serve`, which runs the
+  daemon in the foreground for launchd and `brew services`. `python -m
+  shufler` works too.
 - A Homebrew formula for the project's own tap (`brew tap
   jgrichardson/shufler`), in `packaging/homebrew/shufler.rb`, with a
   `brew services` block.
@@ -29,17 +29,6 @@ All notable changes to Shufler are recorded here. The format follows
 - CI builds the wheel on macOS and Linux and smoke tests it: a clean venv,
   a throwaway home, `setup`, the daemon on a spare port, and the served web
   app (`packaging/smoke-test.sh`).
-
-### Changed
-
-- The Python distribution is renamed from `shufler-daemon` to `shufler`, and
-  the daemon now has a build backend (hatchling). `uv sync` installs the
-  package into `daemon/.venv`, which adds a `shufler` command there.
-- An installed copy reads its example config and web app from inside the
-  package, and writes `actions.jsonl` to `~/.local/share/shufler/` rather
-  than beside the code. A clone behaves as before.
-- `shufler stop` and `status` only count a launchd job whose plist is in the
-  current home directory.
 - Works in any terminal: `[terminal] kind = "none"` (offered by
   `shufler setup`, and what `auto` falls back to when no supported terminal
   is running or installed) draws one row per running `claude` or `codex`
@@ -54,13 +43,32 @@ All notable changes to Shufler are recorded here. The format follows
   the terminal sync switch. Auto-send of pinned context skips quietly.
 - Mock mode takes `?terminal=none` and `?caps_off=<flag>,...` to preview
   those states without a daemon.
+- An MCP server, `shufler mcp`, so agents in Claude Code or Codex can ask
+  Shufler what is running. Read-only tools: `status`, `needs_you`, `get_pr`,
+  `read_session` and `list_work_items`. It is a client of the daemon's
+  existing HTTP API.
+- Opt-in dispatch tools for the MCP server (`[mcp] allow_dispatch = true`):
+  `send_prompt` and `answer_question` return the daemon's preview and a
+  one-time `confirm_id`, and only `confirm_dispatch` sends. The never-do
+  guard, a control-character check, a no-self-target rule and a rate limit
+  apply. `docs/MCP.md` has the threat model.
+- `shufler mcp --print-config` prints setup lines for Claude Code and Codex.
 
 ### Changed
 
+- The Python distribution is renamed from `shufler-daemon` to `shufler`, and
+  the daemon now has a build backend (hatchling). `uv sync` installs the
+  package into `daemon/.venv`, which adds a `shufler` command there.
+- An installed copy reads its example config and web app from inside the
+  package, and writes `actions.jsonl` to `~/.local/share/shufler/` rather
+  than beside the code. A clone behaves as before.
+- `shufler stop` and `status` only count a launchd job whose plist is in the
+  current home directory.
 - A refused terminal lever names the reason in plain words; in no-terminal
   mode: "no supported terminal is configured ..., pick a terminal with
   `shufler setup`". Additive contract changes: `capabilities.terminal_caps`,
-  the `none` terminal kind and source key, and the `can_follow` flag.
+  the `none` terminal kind and source key, and the `can_follow` flag. See
+  `CONTRACT.md`.
 
 ## [0.2.0] - 2026-10-28
 
@@ -126,5 +134,6 @@ The first public release.
   commands, all configured in `~/.config/shufler/config.toml`.
 - A mock mode (`?mock=1`) for trying it without any setup.
 
+[0.3.0]: https://github.com/jgrichardson/shufler/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jgrichardson/shufler/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jgrichardson/shufler/releases/tag/v0.1.0

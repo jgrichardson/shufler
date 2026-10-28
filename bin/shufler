@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Shufler: A 3D control room for developers who run many AI coding agent sessions at once.
-# Control script: init | setup | dev | start | stop | status | install | uninstall | test | library | version
+# Control script: init | setup | dev | start | stop | status | install | uninstall | test | library | mcp | version
 set -euo pipefail
 
 # The product's names, each defined once here (the daemon's own copy is in daemon/shufler/config.py).
@@ -197,6 +197,12 @@ cmd_test() { sync_env; cd "$DAEMON" && "$UV" run pytest -q "$@"; }
 
 cmd_library() { sync_env; cd "$DAEMON" && "$UV" run --quiet python -m "$NAME.library_cli" "$@"; }
 
+# stdio MCP server for agents (docs/MCP.md). stdout is the protocol channel, so nothing else may print there.
+cmd_mcp() {
+  [[ -x "$DAEMON/.venv/bin/python" ]] || sync_env >&2
+  cd "$DAEMON" && exec "$DAEMON/.venv/bin/python" -m "$NAME.mcp_server" "$@"
+}
+
 cmd_init() {
   prepare
   local target; target="$(setting CONFIG "$HOME/.config/$NAME/config.toml")"
@@ -226,6 +232,7 @@ usage: $NAME <command>
   install | uninstall   launchd login item
   test [args]           daemon tests
   library ...           context library: add, list, grant, send
+  mcp [--print-config]  MCP server on stdio so agents can ask what is running (docs/MCP.md)
   version               print the version
 EOF
 }
@@ -241,6 +248,7 @@ case "${1:-}" in
   uninstall) cmd_uninstall ;;
   test) shift; cmd_test "$@" ;;
   library) shift; cmd_library "$@" ;;
+  mcp) shift; cmd_mcp "$@" ;;
   version|-V|--version) echo "$NAME $(version)" ;;
   -h|--help|help) usage ;;
   *) usage >&2; exit 2 ;;
