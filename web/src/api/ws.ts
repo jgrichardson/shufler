@@ -34,7 +34,9 @@ let attempt = 0;
 let mockTimer: ReturnType<typeof setInterval> | null = null;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** Demo data: `?mock=1`, or a static demo build (VITE_DEMO=1, e.g. the GitHub Pages site) that has no daemon at all. */
 export function mockForced(): boolean {
+  if (import.meta.env.VITE_DEMO === '1') return true;
   return new URLSearchParams(window.location.search).get('mock') === '1';
 }
 
