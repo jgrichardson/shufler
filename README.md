@@ -8,7 +8,7 @@
 
 A 3D control room for developers who run many AI coding agent sessions at once, in Claude Code, the OpenAI Codex CLI or both.
 
-**[Try the live demo](https://jgrichardson.github.io/shufler/)** (sample data in your browser, nothing to install) · [Quickstart](#quickstart) · [Install](#install)
+**[Try the live demo](https://jgrichardson.github.io/shufler/)** (sample data in your browser, nothing to install) · [Quickstart](#quickstart) · [Install](#install) · [How is this different?](#how-is-this-different)
 
 <picture>
   <source media="(prefers-reduced-motion: reduce)" srcset="docs/images/hero.png">
@@ -216,6 +216,22 @@ Press `?` for every shortcut. See [Keyboard shortcuts](#keyboard-shortcuts) belo
 
 A drawer of local shells, for a console you want next to the scene. At most six, closed after two hours idle.
 
+## How is this different?
+
+Several good tools already help you run many agents. Pick the one that fits how you work.
+
+- **Claude Code's agent view.** Built into Claude Code: one screen for all your Claude Code sessions that shows which ones need input and lets you answer them there. If you only run Claude Code and want to stay in the terminal, it covers the core "which session is waiting on me?" question, with nothing extra to install.
+- **claude-squad and other tmux-based managers** (TUIs that start, list and switch between agent sessions in tmux, often one git worktree each). They manage the sessions for you inside the terminal.
+- **A tmux grid or split panes.** No new tool at all, and you see every agent's output live. It gets crowded past a handful of sessions, and it does not know about pull requests.
+
+Shufler sits next to whichever of these you use and adds a different view:
+
+- Claude Code and Codex sessions in the same scene, from cmux, iTerm2 or tmux. It does not start or own your sessions.
+- Pull requests and their CI, review and merge state, shown moving through stages beside the session that owns them.
+- One "your move" list across sessions and PRs, and a click that focuses the real terminal tab.
+
+The trade-offs: it is a browser app plus a local daemon, macOS only for now, GitHub only, and early beta.
+
 ## Status
 
 Shufler is early beta software, version 0.2.0 (pre-1.0). It was built for one developer's setup and is being opened up.
@@ -279,7 +295,7 @@ The quickest way is the [hosted demo](https://jgrichardson.github.io/shufler/), 
 cd web && bun install && bun run dev
 ```
 
-Open http://localhost:5173/?mock=1. The app also falls back to mock data, with a banner, if it cannot reach a daemon after three tries.
+Open http://localhost:5173/?mock=1. Without `?mock=1` the app never shows demo data on its own: if it cannot reach a daemon after three tries, it says so and points you to `?mock=1`.
 
 ### Name your workspaces so sessions join exactly
 
