@@ -5,7 +5,7 @@ Shufler is a 3D control room for developers who run many AI coding agent session
 ## Run it
 
 ```bash
-bin/shufler init     # writes ~/.config/shufler/config.toml from daemon/config.example.toml
+bin/shufler setup    # creates ~/.config/shufler/config.toml from daemon/config.example.toml and picks your terminal
 $EDITOR ~/.config/shufler/config.toml
 cd web && bun install && bun run build && cd ..
 bin/shufler start    # http://127.0.0.1:4700
@@ -13,7 +13,9 @@ bin/shufler test     # daemon tests (uv + pytest)
 cd web && npx tsc --noEmit && npx vitest run
 ```
 
-`bin/shufler dev` runs the daemon with reload plus the Vite dev server.
+`bin/shufler dev` runs the daemon with reload plus the Vite dev server. `bin/shufler init` only copies the example config, without the terminal and harness questions; `setup` is the one to run first.
+
+To work on the web app alone, `cd web && bun run dev` and open http://localhost:5173/?mock=1 for sample data with no daemon.
 
 ## Packaging
 

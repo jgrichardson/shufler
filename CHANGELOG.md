@@ -8,6 +8,10 @@ All notable changes to Shufler are recorded here. The format follows
 
 ### Added
 
+- A hosted demo at https://shufler.app (GitHub Pages): the web app on built-in sample data, with
+  no daemon and every action simulated. `VITE_DEMO=1` and `SHUFLER_BASE` build it; `.github/workflows/pages.yml`
+  publishes it on every push to `main`. Its status bar links back to the repository. The hosted demo shows a
+  lighter floor of six rows and one or two PRs each; local `?mock=1` keeps the full sample world.
 - Command Post, a sixth skin (`?skin=commandpost`): a field base on a
   living map, with compounds for rows, command tents and container cabins
   for sessions, supply convoys for work items, field facilities for stages,
@@ -17,7 +21,8 @@ All notable changes to Shufler are recorded here. The format follows
 - Packaged installs. The daemon builds as a wheel and sdist named `shufler`
   that carry the built web app, so `pipx install` or `uv tool install` of a
   release wheel gives a working `shufler` command with no clone, Bun or Node.
-  Shufler is not on PyPI; the wheel is attached to the GitHub release.
+  The package is on PyPI as `shufler`, and the wheel is also attached to the
+  GitHub release.
 - A `shufler` command for packaged installs, with the same commands as
   `bin/shufler` (`init`, `setup`, `start`, `stop`, `status`, `install`,
   `uninstall`, `library`, `mcp`, `version`) plus `serve`, which runs the

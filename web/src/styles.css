@@ -331,6 +331,8 @@ body:not([data-zoomed='1']) .building-plate:not(.is-selected):not(:hover) .pr-ch
 
 .demo-pill { background: #f5a524; color: #2b1a00; font: 750 10.5px/1 Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; }
 .demo-note { font-weight: 500; }
+.demo-get { color: var(--accent); font-weight: 600; text-decoration: none; border: 1px solid currentColor; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.demo-get:hover, .demo-get:focus-visible { background: var(--accent); color: var(--accent-ink); }
 
 .tooltip { position: fixed; z-index: 80; pointer-events: none; border-radius: 10px; padding: 8px 11px; max-width: 320px; background: var(--glass-strong); }
 .tt-title { font-weight: 650; display: flex; gap: 6px; align-items: center; }

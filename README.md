@@ -1,31 +1,49 @@
 # Shufler
 
+[![CI](https://github.com/jgrichardson/shufler/actions/workflows/ci.yml/badge.svg)](https://github.com/jgrichardson/shufler/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/jgrichardson/shufler)](https://github.com/jgrichardson/shufler/releases)
+
 *You used to write code. Now you shuffle prompts between people and robots. Might as well enjoy it.*
 
-A 3D control room for developers who run many AI coding agent sessions at once.
+A 3D control room for developers who run many AI coding agent sessions at once, in Claude Code, the OpenAI Codex CLI or both.
 
-Shufler reads your terminal sessions, your agent transcripts and your GitHub pull requests, and turns them into an interactive 3D world. Each terminal session is a row. Its PRs and issues move left to right through phase columns, from Brainstorm to Deploy. Anything that needs you lights up red. You can answer a question, dispatch a prompt, re-run CI or merge from the scene, or just carry on in your terminal.
-
-**Shufler does not replace Claude Code, Codex or your terminal.** You keep working exactly as you do today: your agents run in your terminal tabs and you type to them there. Shufler sits beside them, reads what they are doing and shows it all as one world. Each row is one of your terminal tabs. Click a row and your terminal switches to that tab.
+**[Try the live demo](https://shufler.app)** (sample data in your browser, nothing to install) · [Quickstart](#quickstart) · [Install](#install) · [How is this different?](#how-is-this-different)
 
 <picture>
   <source media="(prefers-reduced-motion: reduce)" srcset="docs/images/hero.png">
   <img src="docs/images/hero.gif" width="100%" alt="Shufler beside a terminal whose tabs match its rows: clicking AUTH, then the BILLING question, then INFRA switches the terminal to that tab each time">
 </picture>
 
+Shufler reads your terminal sessions, your agent transcripts and your GitHub pull requests, and turns them into an interactive 3D world. Each terminal session is a row. Its PRs and issues move left to right through phase columns, from Brainstorm to Deploy. Anything that needs you lights up red. You can answer a question, dispatch a prompt, re-run CI or merge from the scene, or just carry on in your terminal.
+
+**Shufler does not replace Claude Code, Codex or your terminal.** You keep working exactly as you do today: your agents run in your terminal tabs and you type to them there. Shufler sits beside them, reads what they are doing and shows it all as one world. Each row is one of your terminal tabs. Click a row and your terminal switches to that tab.
+
+## Quickstart
+
+Beta (v0.3.0, pre-1.0), macOS, any terminal (cmux, iTerm2 and tmux get the most). You need the [GitHub CLI](https://cli.github.com) and Claude Code or the Codex CLI. Other ways to install are in [Install](#install).
+
+```bash
+brew install jgrichardson/shufler/shufler   # or: pipx install shufler, or: uv tool install shufler
+shufler setup            # writes ~/.config/shufler/config.toml; then set scm.repo in it
+shufler start            # open http://127.0.0.1:4700
+```
+
 ## Why this exists
 
-For twenty years a developer's day ran across three windows: a terminal, a code editor and a browser. The editor was the centre. You read code, you wrote code, and the other two windows supported that.
+I've been a full-stack engineer for about twenty years, and I liked the work. The day ran across three windows: a terminal, a code editor and the app I was building. The editor was the centre. You read code, you wrote code, and the other two windows supported that.
 
-AI changed the shape of that day. I barely open an editor now. The terminal is my main interface, and inside it I run five, eight, sometimes a dozen agent sessions at once. One is building a feature, one is fixing review comments, one is waiting for CI, one has stopped to ask me a question twenty minutes ago and I haven't noticed.
+AI changed the shape of that day. I barely open an editor now, I miss it, and I don't think it's coming back. The terminal is my main interface, and inside it I run five, eight, sometimes a dozen agent sessions at once. One is building a feature, one is fixing review comments, one is waiting for CI, one has stopped to ask me a question.
 
 One day I looked at what I'd actually done and it was mostly this: copy a request out of Slack, paste it into an agent. Copy the agent's question back to the person who asked. Paste their answer into the agent. Check GitHub, nudge CI, paste the error into another agent, carry the result back to the ticket. Request in, request out, all day. I wasn't reasoning much. I was shuffling.
 
-That's the job now for a lot of us. Not writing code, but shuffling requests between the people who want things and the models that build them, and holding the state of every thread in your head. Which session is blocked on me? Which PR passed review? Which one is still on an old commit? None of my tools was built to answer that, because none of them was built for this way of working.
+That's the job now for a lot of us. Not writing code, but shuffling requests between the people who want things and the models that build them, and holding the state of every thread in your head. Which session is blocked on me? Which PR passed review? Which one is still on an old commit? None of my tools was built to answer that, because none of them was built for this way of working. And it's the same kanban every org already runs for designs, tickets and pull requests.
 
 So I stopped pretending the day still looks like an editor, and built a tool for the job I actually have. If the work is shuffling a fleet of agents across a pipeline, it should look like what it is: a live world where every session is a row, every pull request is a car riding from idea to production, and anything waiting on you lights up. Shuffling is less soul-crushing when you can see the whole floor, and it can even feel a little like a game, one where the score is shipped work.
 
 That's Shufler. It doesn't pretend you're still hand-writing every line. It owns the shuffle, and makes you very good at it.
+
+It started as a weekend project and it's rough in places. Claude Code wrote most of the code; I designed it and reviewed what shipped. I've used it at work every day since, and I enjoy it, which is why it's here.
 
 Shufler runs on your machine only. It wraps your existing tools (a terminal multiplexer, an agent harness, the `gh` CLI) and does not replace any of them.
 
@@ -205,14 +223,30 @@ A drawer of local shells, for a console you want next to the scene. At most six,
 
 `shufler mcp` (`bin/shufler mcp` in a clone) is an MCP server for Claude Code and Codex, so your agents can ask Shufler what is running: `status`, `needs_you`, `get_pr`, `read_session` and `list_work_items`, all read-only. An opt-in second tier lets an agent preview a prompt or an answer for another session and send it only through a separate confirm call. `shufler mcp --print-config` prints the setup lines. See [`docs/MCP.md`](docs/MCP.md).
 
+## How is this different?
+
+Several good tools already help you run many agents. Pick the one that fits how you work.
+
+- **Claude Code's agent view.** Built into Claude Code: one screen for all your Claude Code sessions that shows which ones need input and lets you answer them there. If you only run Claude Code and want to stay in the terminal, it covers the core "which session is waiting on me?" question, with nothing extra to install.
+- **claude-squad and other tmux-based managers** (TUIs that start, list and switch between agent sessions in tmux, often one git worktree each). They manage the sessions for you inside the terminal.
+- **A tmux grid or split panes.** No new tool at all, and you see every agent's output live. It gets crowded past a handful of sessions, and it does not know about pull requests.
+
+Shufler sits next to whichever of these you use and adds a different view:
+
+- Claude Code and Codex sessions in the same scene, from cmux, iTerm2 or tmux, or from any terminal in no-terminal mode. It does not start or own your sessions.
+- Pull requests and their CI, review and merge state, shown moving through stages beside the session that owns them.
+- One "your move" list across sessions and PRs, and a click that focuses the real terminal tab.
+
+The trade-offs: it is a browser app plus a local daemon, macOS only for now, GitHub only, and early beta.
+
 ## Status
 
-Shufler is early software, version 0.3.0. It was built for one developer's setup and is being opened up.
+Shufler is early beta software, version 0.3.0 (pre-1.0). It was built for one developer's setup and is being opened up.
 
 - It is macOS first. Terminals: cmux, iTerm2 and tmux, plus a no-terminal mode that works with any other terminal (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
 - Agent harnesses: Claude Code and the OpenAI Codex CLI, mixed freely (see [`docs/AGENTS.md`](docs/AGENTS.md)).
 - The only supported source control host is GitHub, through the `gh` CLI.
-- v0.3.0 adds packaged installs (Homebrew from the project's own tap, `pipx` or `uv tool` from a release wheel, a one-line installer; see [Install](#install)), no-terminal mode with greyed-out levers, and an MCP server for your agents. It is not on PyPI or in Homebrew core. v0.2.0 added the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md).
+- v0.3.0 adds packaged installs (Homebrew from the project's own tap, `pipx` or `uv tool` from a release wheel, a one-line installer; see [Install](#install)), no-terminal mode with greyed-out levers, and an MCP server for your agents. It is on PyPI as `shufler` and in the project's own Homebrew tap. v0.2.0 added the Codex CLI harness, the horizon view and the big-island layout. See [`CHANGELOG.md`](CHANGELOG.md).
 - The optional integrations (a reviewer bot, work item sources, custom commands) talk to your tools through commands you configure. They are all off by default.
 
 See [Support matrix](#support-matrix) for what is planned.
@@ -234,7 +268,7 @@ See [Support matrix](#support-matrix) for what is planned.
 
 ## Install
 
-Each install gives you a `shufler` command. The packaged ones (Homebrew, `pipx`, `uv tool`, the one-liner) carry a built copy of the web app, so they need no Bun, Node or clone. Packages are attached to GitHub releases from v0.3.0 on. Shufler is not on PyPI or in Homebrew core.
+Each install gives you a `shufler` command. The packaged ones (Homebrew, `pipx`, `uv tool`, the one-liner) carry a built copy of the web app, so they need no Bun, Node or clone. From v0.3.0 the package is on PyPI as `shufler`, the formula is in the project's own tap, and the wheel is also attached to each GitHub release. It is not in Homebrew core.
 
 **One line** (macOS). It checks for Python, uv or pipx, installs the latest release wheel, then runs `shufler setup`:
 
@@ -251,11 +285,11 @@ brew tap jgrichardson/shufler
 brew install shufler
 ```
 
-**pipx or uv**, from the wheel on a release (put in the version you want):
+**pipx or uv**, from PyPI:
 
 ```bash
-pipx install https://github.com/jgrichardson/shufler/releases/download/v0.3.0/shufler-0.3.0-py3-none-any.whl
-uv tool install https://github.com/jgrichardson/shufler/releases/download/v0.3.0/shufler-0.3.0-py3-none-any.whl
+pipx install shufler
+uv tool install shufler
 ```
 
 Then, for any of those:
@@ -298,11 +332,13 @@ With Homebrew, `brew services start shufler` does the same job.
 
 Mock mode runs the web app on built-in sample data. No daemon, terminal or GitHub access is needed. Every lever is simulated.
 
+The quickest way is the [hosted demo](https://shufler.app), the same mock mode built as a static site. To run it locally:
+
 ```bash
 cd web && bun install && bun run dev
 ```
 
-Open http://localhost:5173/?mock=1. The app also falls back to mock data, with a banner, if it cannot reach a daemon after three tries.
+Open http://localhost:5173/?mock=1. Without `?mock=1` the app never shows demo data on its own: if it cannot reach a daemon after three tries, it says so and points you to `?mock=1`.
 
 ### Name your workspaces so sessions join exactly
 
@@ -658,7 +694,7 @@ Ideas that are not built yet. Some are close, some are a wish list. If one matte
 
 ## Contributing
 
-Issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first. In short: the daemon binds to loopback only, no action may be destructive, and `CONTRACT.md` changes first when a field changes. Security reports go through [`SECURITY.md`](SECURITY.md).
+Issues and pull requests are welcome; questions and ideas can go to [Discussions](https://github.com/jgrichardson/shufler/discussions). Issues labelled [`good first issue`](https://github.com/jgrichardson/shufler/labels/good%20first%20issue) are small and self-contained. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first. In short: the daemon binds to loopback only, no action may be destructive, and `CONTRACT.md` changes first when a field changes. Security reports go through [`SECURITY.md`](SECURITY.md).
 
 ## License
 

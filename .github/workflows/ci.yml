@@ -15,7 +15,7 @@ jobs:
         working-directory: daemon
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
       - run: uv python install 3.12
       - run: uv sync --python 3.12
       - run: uv run --python 3.12 pytest -q
@@ -27,7 +27,7 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - run: bun install --frozen-lockfile
       - run: npx tsc --noEmit
       - run: npx vitest run
