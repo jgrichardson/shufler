@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { Station } from '../../types';
 import { requestAction } from '../requestAction';
 
-/** Pending AskUserQuestion: one button per option (recommended highlighted, never auto-picked) + free text. */
+/** Pending AskUserQuestion or harness approval: one button per option (recommended highlighted, never auto-picked;
+ * an approval option shows the key it presses) + free text. */
 export function DecisionCard({ station }: { station: Station }) {
   const q = station.pending_question;
   const [text, setText] = useState('');
@@ -11,7 +12,7 @@ export function DecisionCard({ station }: { station: Station }) {
   return (
     <div className="decision-card">
       <div className="decision-kicker">
-        <span className="q-glyph">?</span> Decision needed{q.header ? ` · ${q.header}` : ''}
+        <span className="q-glyph">?</span> {q.kind === 'approval' ? 'Approval needed' : `Decision needed${q.header ? ` · ${q.header}` : ''}`}
       </div>
       <div className="decision-q">{q.question}</div>
       <div className="decision-options">
@@ -20,6 +21,7 @@ export function DecisionCard({ station }: { station: Station }) {
             <span className="opt-label">
               {o.label}
               {o.recommended && <span className="rec-tag">Recommended</span>}
+              {o.key && <kbd className="opt-key">{o.key === 'Escape' ? 'esc' : o.key}</kbd>}
             </span>
             {o.description && <span className="opt-desc">{o.description}</span>}
           </button>

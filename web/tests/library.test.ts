@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeMessage, computeOwed, dropSpecs, filterItems, grantMatches, normalizeLibraryField, parseDroppedText, stationContext, statusText, type LibraryData, type LibraryItem } from '../src/lib/library';
+import { composeMessage, computeOwed, dropSpecs, filterItems, grantMatches, harnessFor, harnessLabel, normalizeLibraryField, parseDroppedText, stationContext, statusText, type LibraryData, type LibraryItem } from '../src/lib/library';
 import { parsePrefs } from '../src/ui/prefs';
 
 const item = (id: string, name: string, paths: string[], kinds: Record<string, 'file' | 'dir'> = {}): LibraryItem => ({
@@ -22,6 +22,26 @@ describe('composeMessage (mirrors daemon library.compose)', () => {
   });
   it('codex and others: plain paths, no /add-dir', () => {
     expect(composeMessage('codex', [items[0]], '/r')).toEqual(['Context from the library: Auth: /r/docs/ctx /shared/specs /shared/specs/sub. Read these before continuing.']);
+  });
+});
+
+describe('codex format', () => {
+  const items = [item('a', 'Specs', ['/r/my specs', '/r/api.md'], { '/r/my specs': 'dir' })];
+  it('absolute paths, spaced ones double-quoted, no @ and no /add-dir', () => {
+    expect(composeMessage('codex', items, '/r', 'Check the limits')).toEqual(['Context from the library: Specs: "/r/my specs" /r/api.md. Check the limits. Read these before continuing.']);
+  });
+  it('generic harnesses keep paths bare', () => {
+    expect(composeMessage('generic', items, '/r')).toEqual(['Context from the library: Specs: /r/my specs /r/api.md. Read these before continuing.']);
+  });
+  it('harnessFor: the snapshot harness wins, then a codex title, else Claude Code', () => {
+    expect(harnessFor({ title: 'CODEX lab', harness: 'claude' })).toBe('claude-code');
+    expect(harnessFor({ title: 'Rate limiter', harness: 'codex' })).toBe('codex');
+    expect(harnessFor({ title: 'codex scratch' })).toBe('codex');
+    expect(harnessFor({ title: 'Billing', harness: null })).toBe('claude-code');
+  });
+  it('harnessLabel reads a missing harness as Claude Code', () => {
+    expect(harnessLabel('codex')).toBe('Codex');
+    expect(harnessLabel(undefined)).toBe('Claude Code');
   });
 });
 

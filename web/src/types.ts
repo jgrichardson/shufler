@@ -39,7 +39,12 @@ export interface Domain {
 export interface PendingQuestion {
   question: string;
   header?: string | null;
-  options: { label: string; description?: string | null; recommended?: boolean }[];
+  /** Codex approvals: each option's keystroke ("y", "a", "Escape"). */
+  options: { label: string; description?: string | null; recommended?: boolean; key?: string | null }[];
+  /** "approval" for a harness permission prompt, "input" for a question; absent on older snapshots. */
+  kind?: string | null;
+  /** "screen" when read off the terminal, "transcript" when from the transcript file. */
+  source?: string | null;
 }
 
 export interface StationLink {
@@ -135,6 +140,8 @@ export interface Capabilities {
   product?: string;
   terminal?: string | null;
   agent?: string | null;
+  /** Agent harnesses the daemon watches, e.g. ["claude", "codex"]. */
+  agents?: string[];
   scm?: string | null;
   reviewer?: boolean;
   reviewer_retrigger?: boolean;
@@ -167,6 +174,8 @@ export interface Station {
   session_id: string | null;
   /** The agent account name from config ([[agent.accounts]] name), e.g. "personal". */
   account: string | null;
+  /** Agent harness of the session: "claude" or "codex". Absent in old snapshots (read as claude). */
+  harness?: string | null;
   note: StationNote | null;
   activity: StationActivity;
   pr_numbers: number[];

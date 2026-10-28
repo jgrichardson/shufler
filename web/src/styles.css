@@ -490,6 +490,7 @@ body:not([data-zoomed='1']) .building-plate:not(.is-selected):not(:hover) .pr-ch
 .decision-option:hover { background: color-mix(in srgb, var(--overlay) 12%, transparent); }
 .decision-option.recommended { border-color: color-mix(in srgb, var(--ok) 60%, transparent); }
 .opt-label { font-weight: 650; display: flex; gap: 8px; align-items: center; }
+.opt-key { margin-left: 6px; font: 700 9.5px var(--mono); padding: 0 4px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--overlay) 25%, transparent); color: var(--muted); }
 .rec-tag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ok-ink); border: 1px solid color-mix(in srgb, var(--ok) 50%, transparent); border-radius: 5px; padding: 0 5px; }
 .opt-desc { font-size: 11.5px; color: var(--muted); }
 
@@ -874,6 +875,8 @@ body.lib-dragging .panel, body.lib-dragging .lib-sign { opacity: .16; pointer-ev
 .lib-sign.is-selected .owed-chip, .row-head.is-selected .owed-chip { color: var(--surface); background: color-mix(in srgb, var(--warn) 42%, var(--paper)); }
 .row-head.is-selected .terminal-chip { color: var(--surface); border-color: color-mix(in srgb, var(--surface) 55%, transparent); }
 .row-head.is-selected .multi-chip { color: var(--surface); background: color-mix(in srgb, var(--surface) 12%, transparent); }
+.harness-chip { font: 700 8.5px var(--mono); letter-spacing: .02em; padding: 0 3px; border-radius: 4px; line-height: 13px; color: var(--muted); border: 1px solid color-mix(in srgb, var(--overlay) 22%, transparent); margin-left: 2px; flex: none; }
+.row-head.is-selected .harness-chip { color: var(--surface); border-color: color-mix(in srgb, var(--surface) 45%, transparent); }
 .lib-sign.is-dim { opacity: .72; filter: saturate(.3); color: var(--muted); }
 body.lib-dragging, body.lib-dragging * { cursor: grabbing !important; user-select: none; }
 .lib-drop { margin: 4px 14px 8px; padding: 10px 12px; border: 1.5px dashed color-mix(in srgb, var(--overlay) 22%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--overlay) 3%, transparent); transition: border-color .12s, background .12s; }

@@ -10,7 +10,8 @@ halves that talk over a small local protocol:
 This file specifies that protocol and the configuration that shapes it. The code is the source of truth:
 `daemon/shufler/snapshot.py` and `world.py` build the snapshot, `actions.py` plans actions, `app.py` serves
 everything, `config.py` reads `config.toml` and builds `capabilities`. `web/src/types.ts` holds the TypeScript
-types of the same shapes. Terminal adapters are covered in `docs/TERMINALS.md`.
+types of the same shapes. Terminal adapters are covered in `docs/TERMINALS.md`, agent harnesses (Claude Code,
+Codex) in `docs/AGENTS.md`.
 
 Contents: [1 Transport](#1-transport) · [2 Snapshot](#2-snapshot) · [3 Derivations](#3-derivations) ·
 [4 Actions](#4-actions) · [5 Configuration](#5-configuration) · [6 Other endpoints](#6-other-endpoints) ·
@@ -105,8 +106,8 @@ named `*_at` that come from GitHub or records are ISO 8601 strings. Absent data 
 `sources` has one entry per enabled source: `{ok, age, error?}` (`age` = seconds since the last successful
 read; `error` is at most 300 characters). A failing source never stops the others and keeps its last good
 data. Keys: the terminal adapter's name (`cmux`, `iterm2` or `tmux`), `groups`, `notes`, `intake`, `ledgers`,
-`processes`, `transcripts`, `skills`, `accounts`, `gh`, `gh_merged`, `gh_detail`, `ledger_branches`, `deploys`,
-`reviewer_watch`, `board`. A source that is off in the config is absent.
+`processes`, `transcripts`, `screens`, `skills`, `accounts`, `gh`, `gh_merged`, `gh_detail`, `ledger_branches`,
+`deploys`, `reviewer_watch`, `board`. A source that is off in the config is absent.
 
 | Source | Reads | Refresh |
 |---|---|---|
@@ -116,9 +117,10 @@ data. Keys: the terminal adapter's name (`cmux`, `iterm2` or `tmux`), `groups`, 
 | `intake` | work-item records (`[intake] dir`) | 10 s |
 | `ledgers` | area ledger files (`[ledgers] dir`) | 30 s |
 | `processes` | running agent processes (`ps`, `lsof`) | 10 s |
-| `transcripts` | agent session transcripts (new bytes only) | 3 s |
+| `transcripts` | agent session transcripts of every enabled harness (new bytes only) | 3 s |
+| `screens` | the screen of a mid-turn, quiet session of a harness that asks on screen (Codex approvals); only with `processes` and a terminal that can read screens | 5 s |
 | `skills` | discovered skills and commands | 60 s |
-| `accounts` | per-account label, masked email, quota cache | 10 s |
+| `accounts` | per-account label, masked email, quota cache (Codex: one `codex` account) | 10 s |
 | `gh` / `gh_merged` / `gh_detail` | open PRs / PRs merged since Monday / mergeability and head commit time of each open PR | 60 s / 60 s / 90 s |
 | `ledger_branches` | GitHub status of branches that ledger rows name | 30 s |
 | `deploys` | deploy workflow runs (`[scm] deploy_workflow`) | 120 s |
@@ -151,15 +153,16 @@ One terminal row, joined to its agent session.
 | `cwd` | string or null | working directory |
 | `ports` | int[] | listening ports, when the terminal reports them |
 | `session_id` | string or null | the joined agent session |
+| `harness` | string or null | the agent harness in this row: `claude` or `codex` (`docs/AGENTS.md`); the running process's harness, else the joined transcript's; null when neither is known |
 | `session_id_source` | string | how it was joined: `title`, `note`, `cwd_match`, `process_name`, `process` or `none` |
-| `account` | string or null | the `[[agent.accounts]]` name whose transcript directory holds the session |
+| `account` | string or null | the `[[agent.accounts]]` name whose transcript directory holds the session; `codex` for Codex sessions |
 | `note` | object or null | `{state, text, ts}` session note (section 3.7); `ts` is null for notes parsed from a terminal description |
 | `activity` | object | `{last_at, last_tool, subagents, idle_seconds, status, tool_calls}`; `status` is `active`, `idle`, `stalled` or `closed` |
-| `claude` | object or null | `{running, pid, since, sessions: [id], count}` for agent processes in this row; `null` when the process source is off |
+| `claude` | object or null | `{running, pid, since, sessions: [id], count}` for agent processes in this row, of any harness (the name predates Codex support); `null` when the process source is off |
 | `tokens_today` | int | input + output tokens of the session today |
 | `telemetry` | object | statusline-style figures, below |
 | `context_pct`, `quota_pct` | number or null | copies of `telemetry.context_pct` and `telemetry.rate_limit.used_pct` |
-| `pending_question` | object or null | `{question, header, options: [{label, description, recommended}], multi_select, more}`: the agent's open multiple-choice question |
+| `pending_question` | object or null | `{question, header, options: [{label, description, recommended, key?}], multi_select, more, kind?, source?}`: the agent's open multiple-choice question. `kind` is `approval` for a Codex approval prompt (each option then has the `key` that answers it), `input` for a Codex plan-mode question; `source` is `screen` or `transcript` for Codex |
 | `last_assistant_preview` | string or null | newest main-thread assistant text, whitespace collapsed, 120 characters at most |
 | `last_prompt_at` | string or null | when the terminal last saw a submitted prompt |
 | `selected` | bool | the terminal's focused row |
@@ -185,7 +188,8 @@ focus, `group`, `sidebar_index`, `row_order` or `skill_names`.
 `telemetry`: `{model, account_label, account_email_masked, context_pct, context_tokens, context_window,
 cost_usd_session, tokens_in_today, tokens_out_today, rate_limit: {remaining_pct, used_pct, resets_at,
 week_used_pct, as_of} | null, uptime_s, session_started_at, transcript_size_bytes, turns, compactions}`. Every
-field is null when its source does not say.
+field is null when its source does not say. For Codex rows `context_window` and `rate_limit` come from the
+session's rollout (`token_count`), and `cost_usd_session` is null.
 
 ### Workpiece
 
@@ -408,11 +412,15 @@ counts while its `cwd` equals that row's cwd. Notes are written by tools you con
 A station is joined to a session by, in order: a unique session-id prefix in the title suffix (` · <8 hex>`);
 the newest note for that row; a cwd that exactly one row has and exactly one recent session (written in the last
 24 h) uses. A joined session with no live transcript falls back to the newest unclaimed transcript in the same
-cwd written in the last 10 minutes. Running agent processes (`claude` in `ps`, excluding headless `-p` runs) are
-matched to rows by the terminal id in the process environment (`CMUX_WORKSPACE_ID`, `ITERM_SESSION_ID`,
+cwd written in the last 10 minutes. Running agent processes (`claude` in `ps`, excluding headless `-p` runs;
+interactive `codex`, excluding `codex exec` and the other non-interactive subcommands; each tagged with its
+harness) are matched to rows by the terminal id in the process environment (`CMUX_WORKSPACE_ID`, `ITERM_SESSION_ID`,
 `TMUX_PANE`), else by tty when exactly one row owns it, else by session id, else by a cwd belonging to one row.
-A process on a tty that none of the terminal's rows owns is ignored. A process refines the join (`--name`
-matching the row title, or the newest live process's session). With the process source on and no process in a
+A process on a tty that none of the terminal's rows owns is ignored. A process with no session id in its
+arguments takes the newest unclaimed transcript of its own harness in its cwd written in the last hour (a Claude
+process never takes a Codex rollout, and the other way round). A process refines the join (`--name` matching the
+row title, or the newest live process's session); a join to a transcript of a harness that no longer runs in the
+row is dropped. With the process source on and no process in a
 row, `activity.status` is `closed`.
 
 `activity.status`: `stalled` when the note state is `working` and the session has been idle more than 900 s;
@@ -477,7 +485,7 @@ explicit.
 |---|---|---|---|
 | `focus` | `station_id` | none | the terminal's focus command for that row |
 | `dispatch` | `station_id`, `text` (1 to 4,000 chars) | tap | type `text` into the session's pane, press Return, read the screen back |
-| `answer_question` | `station_id`, `text` | tap | as `dispatch`; warns when no question is recorded |
+| `answer_question` | `station_id`, `text` | tap | as `dispatch`; warns when no question is recorded. For a question with `kind: approval` (Codex) the matching option's `key` is pressed instead (`y`, `a`, `p` typed without Return, or Esc); other text presses Esc and then sends the text with Return. The plan then has `facts.keystrokes` and skips the empty-input check |
 | `postmerge` | `pr` (merged) | tap | `dispatch` of `[prompts] postmerge` (with `{pr}`) to the PR's station |
 | `new_item` | `text` (1 to 2,000) | tap | `dispatch` of `[intake] prompt` (with `{text}`) to the station titled `[intake] workspace` |
 | `run_skill` | `skill`, `station_id` (or the skill's `target`), `args?`, `context?` | the skill's `confirm` (default tap) | `dispatch` of `/<skill> <args>`; `args` default to the skill's `args_template`; tokens `{pr} {branch} {station} {link} {link_or_text} {text} {question}` are filled from `context`, params and the station |
@@ -533,7 +541,9 @@ every key. Sections:
 | `[app]` | `port`, `owner_aliases` (lower-case names meaning the person running Shufler; default `["me"]`), `actions_log`, `cache_dir` |
 | `[terminal]` | `kind` (`cmux`, `iterm2`, `tmux`, `auto`), `command_titles`, `utility`, `processes` |
 | `[cmux]`, `[iterm2]`, `[tmux]` | adapter options (`docs/TERMINALS.md`) |
-| `[agent]`, `[[agent.accounts]]` | `adapter` (only `claude-code`); per account `name`, `label`, `projects_dir`, `claude_json`, `settings`, `usage_cache` |
+| `[agents]` | `enabled`: `"auto"` (default: Claude Code always, other harnesses when installed) or a list such as `["claude", "codex"]`; `SHUFLER_AGENTS` overrides it (`docs/AGENTS.md`) |
+| `[agent]`, `[[agent.accounts]]` | Claude Code: `adapter` (only `claude-code`); per account `name`, `label`, `projects_dir`, `claude_json`, `settings`, `usage_cache` |
+| `[codex]` | Codex CLI: `home` (default `$CODEX_HOME`, else `~/.codex`; `SHUFLER_CODEX_HOME` overrides), `bin` |
 | `[scm]` | `adapter` (`github`), `gh`, `repo` (`owner/name`; empty turns the PR sources off), `deploy_workflow`, `deploy_branch`, `preview_url`, `worktree_roots` |
 | `[reviewer]` | `enabled`, `login_regex`, `status_command`, `retrigger_command`, `retrigger_comment` |
 | `[intake]` | `enabled`, `dir`, `set_command`, `workspace`, `prompt`, `reply_events` |
@@ -558,6 +568,7 @@ every key. Sections:
 | `product` | the product name |
 | `terminal` | active terminal kind (`cmux`, `iterm2`, `tmux`) |
 | `agent` | agent adapter (`claude-code`) |
+| `agents` | enabled agent harnesses, e.g. `["claude", "codex"]` |
 | `scm` | `github`, or null when `[scm] repo` is empty |
 | `reviewer` | a reviewer bot is configured |
 | `reviewer_retrigger` | a retrigger command, or a retrigger comment with a repo, is configured |
@@ -652,7 +663,9 @@ no restart needed). `presets` is empty when web terminals are off.
 
 `{station}` is a station id or ref; unknown stations answer 404. Thinking blocks, sidechain and meta records,
 and text injected by the harness (reminders, notifications, command output) are skipped; slash commands show as
-`/name args`.
+`/name args`. Codex rollouts give the same turn shape: user prompts (not the environment context Codex injects),
+assistant messages, and tool calls (`shell`, `apply_patch`, `exec`, ...) with the command, patched file or first
+line of code as the summary; `skills_used` and `prior_session_ids` are empty for them.
 
 ### Web terminals
 
@@ -729,8 +742,10 @@ again changes the mode); deleting an item deletes its grants. The last 500 deliv
 `library_send` composes one message per harness: for `claude-code` it sends `/add-dir <folder>` for each folder
 outside the session's cwd (outermost only), then `Context from the library: <name>: @path ...; ... Read these
 before continuing.` (paths inside the cwd are relative, paths with spaces are quoted); for `codex` and other
-harnesses it sends the same prompt with plain absolute paths. The harness is `codex` when the station title
-contains `codex`, else the configured agent; `harness` overrides it. `text` is the confirm panel's edited
+harnesses it sends the same prompt with plain absolute paths (Codex has no `/add-dir`, and an `@` typed into its
+composer opens a file picker; a path with spaces is double-quoted for `codex`). The format follows the station's
+`harness` (`claude` → `claude-code`, `codex` → `codex`), else `codex` when the station title contains `codex`,
+else the configured agent; the `harness` parameter overrides it. `text` is the confirm panel's edited
 message (`/add-dir` lines go first, the rest joins into one prompt, at most 20 lines). Lines are sent one at a
 time; between lines the daemon waits a second and stops unless the agent's input box is empty again, so text
 never lands in a dialog. On success one delivery per item is recorded with the station's session id and

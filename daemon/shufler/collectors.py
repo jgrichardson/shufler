@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from . import adapters as adapters_mod
-from . import config
+from . import config, runner
 from .adapters.agent.claude_code import ClaudeCodeAdapter, mask_email  # noqa: F401 - re-exported
 from .adapters.terminal.cmux import CMUX_KEEP  # noqa: F401 - re-exported
 from .adapters.tracker.intake import IntakeAdapter
@@ -337,6 +337,66 @@ def collect_accounts(accounts: dict | None = None, usage_dir: Path | None = None
     return ClaudeCodeAdapter({}, accounts, usage).accounts()
 
 
+# ---------------------------------------------------------------- agent screens
+
+class ScreenProbe:
+    """Reads the screen of agent sessions that sit mid-turn with no new transcript records, for harnesses that
+    set `probe_screen` (Codex: its approval prompts are not written to the rollout). Read-only: one list-surfaces
+    and one read-screen call per candidate, at most MAX per tick. Returns {workspace id: pending question}."""
+
+    MAX = 6
+    LINES = 40
+
+    def __init__(self, adapters, processes: Source, transcripts: Source, terminal: Source):
+        self.adapters, self.processes, self.transcripts, self.terminal = adapters, processes, transcripts, terminal
+
+    def _session(self, p: dict, trans: dict[str, dict]) -> dict | None:
+        if p.get("session_id") in trans:
+            return trans[p["session_id"]]
+        same = [t for t in trans.values() if t.get("harness") == p.get("harness") and p.get("cwd")
+                and t.get("cwd") == p.get("cwd")]
+        return max(same, key=lambda t: t.get("last_at") or 0) if same else None
+
+    def _read(self, wid: str) -> str | None:
+        term = self.adapters.terminal
+        r = runner.run(term.list_surfaces_argv(wid), timeout=5)
+        surface = term.first_terminal_surface(r.stdout) if r.ok else None
+        if not surface:
+            return None
+        r = runner.run(term.read_screen_argv(wid, surface, self.LINES), timeout=5)
+        return r.stdout if r.ok else None
+
+    def __call__(self) -> dict[str, dict]:
+        now = time.time()
+        agents = {h: a for h, a in self.adapters.all_agents().items() if getattr(a, "probe_screen", False)}
+        if not agents:
+            return {}
+        workspaces = self.terminal.data or []
+        ws_ids = {str(w.get("id")).upper(): w.get("id") for w in workspaces}
+        tty_owners: dict[str, set] = {}
+        for w in workspaces:
+            for t in w.get("ttys") or []:
+                tty_owners.setdefault(t, set()).add(w.get("id"))
+        trans = self.transcripts.data or {}
+        out: dict[str, dict] = {}
+        for p in self.processes.data or []:
+            agent = agents.get(p.get("harness"))
+            if agent is None or len(out) >= self.MAX:
+                continue
+            owners = tty_owners.get(p.get("tty") or "", set())
+            wid = ws_ids.get(str(p.get("workspace_id") or "").upper()) or (next(iter(owners)) if len(owners) == 1 else None)
+            t = self._session(p, trans)
+            if not wid or wid in out or not t or not t.get("in_turn"):
+                continue
+            if now - (t.get("last_at") or now) < getattr(agent, "QUIET_S", 3.0):
+                continue
+            screen = self._read(wid)
+            q = agent.parse_screen(screen) if screen else None
+            if q:
+                out[wid] = {**q, "session_id": t.get("session_id")}
+        return out
+
+
 # ---------------------------------------------------------------- registry
 
 class Collectors:
@@ -344,7 +404,7 @@ class Collectors:
 
     def __init__(self, adapters: adapters_mod.Adapters | None = None):
         a = self.adapters = adapters or adapters_mod.current()
-        self.transcripts = a.agent.transcript_index()
+        self.transcripts = a.transcript_index()
         self.sources: dict[str, Source] = {}
         add = self._add
         # The terminal's workspaces live under the neutral key "terminal"; health() reports them under the
@@ -359,8 +419,13 @@ class Collectors:
             add("ledgers", 30, a.trackers["ledgers"].collect)
         if config.PROCESSES_ENABLED:
             from .processes import ProcessScanner
-            add("processes", 10, ProcessScanner())
+            add("processes", 10, ProcessScanner({h: ag.match_process for h, ag in a.all_agents().items()}))
         add("transcripts", 3, self._scan_transcripts)
+        if "processes" in self.sources and any(getattr(ag, "probe_screen", False) for ag in a.all_agents().values()):
+            from .adapters.terminal import caps_of
+            if caps_of(a.terminal)["can_read_screen"]:
+                add("screens", 5, ScreenProbe(a, self.sources["processes"], self.sources["transcripts"],
+                                              self.sources["terminal"]))
         self.skill_index = a.agent.skill_index()
         add("skills", 60, self._scan_skills)
         self._skills_primed = False
@@ -374,7 +439,7 @@ class Collectors:
                 add("deploys", 120, DeployTracker(a.scm, merged))
         if a.reviewer and getattr(a.reviewer, "command", None):
             add("reviewer_watch", 30, a.reviewer.status)
-        add("accounts", 10, a.agent.accounts)
+        add("accounts", 10, a.accounts)
         if "board" in a.trackers and "intake" in self.sources:
             intake = self.sources["intake"]
             add("board", 300, lambda: a.trackers["board"].collect(intake.data))

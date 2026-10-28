@@ -108,7 +108,7 @@ export function deleteGrant(id: string) {
 export function composeFor(stationId: string, ids: string[], note?: string): { lines: string[]; harness: string; items: LibraryItem[]; missing: string[] } {
   const st = stations(snap()).find((s) => s.id === stationId);
   const items = ids.map((id) => state.items.find((i) => i.id === id)).filter((x): x is LibraryItem => !!x).map((it) => ({ ...it, status: it.paths.map(status) }));
-  const harness = harnessFor({ title: st?.title });
+  const harness = harnessFor({ title: st?.title, harness: st && 'harness' in st ? st.harness : null });
   const cwd = (st && 'cwd' in st ? st.cwd : null)?.replace(/^~(?=\/|$)/, MOCK_HOME) ?? null;
   const missing = items.flatMap((it) => it.status.filter((s) => !s.exists).map((s) => s.path));
   return { lines: composeMessage(harness, items, cwd, note), harness, items, missing };

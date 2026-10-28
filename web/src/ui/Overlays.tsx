@@ -15,6 +15,7 @@ import { BALL_COLOR, stationColor } from '../lib/colors';
 import { domainDef, PHASE_LABEL } from '../lib/domains';
 import { ago, duration } from '../lib/format';
 import { workingCount } from '../lib/derive';
+import { harnessLabel } from '../lib/library';
 import { itemLabel, owedText } from './panel/common';
 
 export function Toasts() {
@@ -252,6 +253,7 @@ export function Tooltip() {
         {station.pending_question && <div className="tt-q">? {station.pending_question.question}</div>}
         {station.last_assistant_preview && <div className="tt-preview">{station.last_assistant_preview}</div>}
         <div className="tt-meta">
+          {station.harness ? `${harnessLabel(station.harness)} · ` : ''}
           {station.activity.status} · last {station.activity.last_tool ?? 'action'} {ago(station.activity.last_at)} ago
           {station.activity.subagents ? ` · ${station.activity.subagents} subagents` : ''}
         </div>

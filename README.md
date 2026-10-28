@@ -193,7 +193,7 @@ A drawer of local shells, for a console you want next to the scene. At most six,
 Shufler is early software, version 0.1.0. It was built for one developer's setup and is being opened up.
 
 - It is macOS first. Terminals: cmux, iTerm2 and tmux (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
-- The only supported agent harness is Claude Code.
+- Agent harnesses: Claude Code and the OpenAI Codex CLI, mixed freely (see [`docs/AGENTS.md`](docs/AGENTS.md)).
 - The only supported source control host is GitHub, through the `gh` CLI.
 - This is the first release, v0.1.0. Install from a clone of the repo.
 - The optional integrations (a reviewer bot, work item sources, custom commands) talk to your tools through commands you configure. They are all off by default.
@@ -212,6 +212,7 @@ See [Support matrix](#support-matrix) for what is planned.
 | Node | 18 or newer | Needed by the web toolchain (Vite 5, Vitest 2) |
 | [GitHub CLI](https://cli.github.com) | any recent | Run `gh auth login` first. Needed for PR data |
 | Claude Code | any recent | Sessions run in your terminal. Transcripts are read from `~/.claude/projects` |
+| [Codex CLI](https://github.com/openai/codex) | optional | Codex sessions get rows too. Transcripts are read from `~/.codex/sessions`. Picked up automatically when installed |
 | A modern browser | WebGL 2 | Chrome is what the author uses |
 
 ## Install
@@ -277,8 +278,10 @@ Everything machine-specific lives in one TOML file. The daemon looks for it in t
 | `[terminal] kind` | `cmux` | `cmux`, `iterm2` or `tmux`. Each has its own section (`[cmux] bin`, ...) |
 | `[terminal] command_titles` | empty | Workspace titles that get the "command" domain (your control workspaces) |
 | `[terminal] utility` | empty | Workspace titles that get no row |
-| `[agent] adapter` | `claude-code` | Agent adapter. Only `claude-code` exists |
+| `[agents] enabled` | `"auto"` | Agent harnesses to watch: `["claude", "codex"]`, or `"auto"` for Claude Code plus every installed harness. See [`docs/AGENTS.md`](docs/AGENTS.md) |
+| `[agent] adapter` | `claude-code` | Claude Code adapter settings. Only `claude-code` exists |
 | `[[agent.accounts]]` | one personal account | One entry per Claude Code config directory: `projects_dir`, `claude_json`, `settings`, `usage_cache` |
+| `[codex]` | `~/.codex` | Codex CLI: `home` (where `sessions/` lives, or `$CODEX_HOME`) and `bin` |
 | `[scm] repo` | empty | `owner/name` of your GitHub repo, such as `your-org/your-repo`. Empty turns PR sources off |
 | `[scm] deploy_workflow` | empty | Workflow file that deploys to production. Empty turns deploy tracking off |
 | `[scm] deploy_branch` | `main` | Branch whose merges count as deployable |
@@ -366,6 +369,8 @@ Global commands appear in the World panel, the palette and the command drawer (`
 | `SHUFLER_LAUNCHD_LABEL` | launchd label, default `dev.shufler.daemon` |
 | `SHUFLER_DEV` | Set to `1` to let the daemon accept the Vite dev origin on `:5173`. `bin/shufler dev` sets it |
 | `SHUFLER_HISTORY` | Set to `0` to turn history off |
+| `SHUFLER_AGENTS` | Comma-separated harnesses (`claude,codex`) or `auto`. Overrides `[agents] enabled` |
+| `SHUFLER_CODEX_HOME` | Codex home directory. Overrides `[codex] home` and `$CODEX_HOME` |
 
 ### Files and ports
 
@@ -422,7 +427,7 @@ bin/shufler library grant <item> <target> [--once]
 bin/shufler library send <item...> --to <session>
 ```
 
-A grant can be pinned or once, and targets one session, a whole domain or everything. Sending goes through the confirm dialog with an editable message. For Claude Code, folders outside the session's directory are added with `/add-dir` first. Auto-send of pinned context to new sessions is opt-in in Settings.
+A grant can be pinned or once, and targets one session, a whole domain or everything. Sending goes through the confirm dialog with an editable message. For Claude Code, folders outside the session's directory are added with `/add-dir` first. For Codex, items are listed by absolute path. Auto-send of pinned context to new sessions is opt-in in Settings.
 
 ### Skins and themes
 
@@ -469,7 +474,7 @@ Press `?` in the app for the full list.
 |---|---|---|
 | OS | macOS | Linux (systemd user unit for autostart) |
 | Terminal | cmux, iTerm2, tmux | WezTerm |
-| Agent harness | Claude Code | Codex, Aider, other harnesses and accounts (OpenAI, Moonshot) |
+| Agent harness | Claude Code, Codex CLI | Gemini CLI, Aider, OpenCode, other harnesses and accounts |
 | Source control | GitHub through `gh` | |
 | External review | A reviewer bot, by GitHub login and an optional watcher command | |
 | Work items | Intake records, area ledgers, a board CLI (all optional) | |
@@ -481,7 +486,7 @@ Also planned: `restart`, `logs` and `doctor` commands, starting a new session fr
 ## Safety and privacy
 
 - **Local only.** The daemon binds to `127.0.0.1`. Requests must carry a loopback `Host` header. `POST` requests and WebSockets are accepted only from the daemon's own origin.
-- **Transcripts.** The daemon tails your Claude Code transcript files by byte offset. The live data it keeps is tool names, counts, timestamps, PR links, working directory, token totals and a pending question. A 120-character preview of the last assistant message is included in the live snapshot.
+- **Transcripts.** The daemon tails your Claude Code and Codex transcript files by byte offset. For Codex rows it also reads the last 40 lines of the screen while a turn is quiet, to spot an approval prompt; that text is not stored. The live data it keeps is tool names, counts, timestamps, PR links, working directory, token totals and a pending question. A 120-character preview of the last assistant message is included in the live snapshot.
 - **Message text.** The full text of a session's recent messages is read only when you open its Conversation panel, through a single endpoint. It is not broadcast, and it is not written to history.
 - **History** stores events and compacted snapshots without conversation text.
 - **Actions.** Every action is validated against current state and previewed. Commands run as argument lists with a 30-second timeout, never through a shell. Each action is logged.
@@ -496,6 +501,7 @@ Do not expose port 4700 beyond your machine.
 ```
  terminal (cmux,      agent transcripts      GitHub (gh)     optional: reviewer,
  iTerm2, tmux)        ~/.claude/projects     PRs, runs       work items, commands
+                      ~/.codex/sessions
       \                     |                    /                /
        +------- adapters (one small Protocol per kind) -----------+
                             |
@@ -547,7 +553,7 @@ Shufler is built to be extended. Every outside tool it talks to sits behind a sm
 | Extension point | Works today | Planned or wanted | How to add one |
 |---|---|---|---|
 | **Terminals** | cmux, iTerm2, tmux | Ghostty, WezTerm, Kitty, Warp, Terminal.app, Linux and Windows terminals | One adapter file plus a registry entry, or a plug-in package. See [`docs/TERMINALS.md`](docs/TERMINALS.md) |
-| **Agent harnesses** | Claude Code | Codex, Gemini CLI, Aider, OpenCode and other coding agents | An agent adapter under `daemon/shufler/adapters/agent/` that finds sessions and reads transcripts. Guide to come |
+| **Agent harnesses** | Claude Code, Codex CLI | Gemini CLI, Aider, OpenCode and other coding agents | An agent adapter under `daemon/shufler/adapters/agent/` that finds sessions and reads transcripts, or a plug-in package. See [`docs/AGENTS.md`](docs/AGENTS.md) |
 | **Skins** | Starship, Factory, Sky Islands, Theme Park, Casino | Community skins | A JSON recolour, or a code skin folder. See [`docs/SKINS.md`](docs/SKINS.md) |
 | **Code hosts and CI** | GitHub (`gh`) | GitLab, Bitbucket, other CI systems | An SCM adapter under `daemon/shufler/adapters/scm/`. Guide to come |
 | **Review bots** | Any bot that comments on PRs, set up in `[reviewer]` | Ready-made presets for common review bots | Config only today |
@@ -563,7 +569,7 @@ Ideas that did not make the first release. Some are close, some are a wish list.
 
 **Agents**
 - **MCP server.** Let your agents ask Shufler what is running, what is waiting on you, and whether a PR is green, through read-only tools such as `status`, `needs_you`, `get_pr` and `read_session`. A "foreman" agent could watch the whole floor for you. A second, opt-in tier would let an agent dispatch a prompt or answer a question in another session, with the same preview step the app uses.
-- **More agent harnesses:** Codex, Gemini CLI, Aider, OpenCode.
+- **More agent harnesses:** Gemini CLI, Aider, OpenCode.
 
 **Terminals**
 - **Works in any terminal.** A mode that needs no supported terminal: rows come straight from running agent sessions, and only send-and-focus are disabled.

@@ -7,6 +7,7 @@ import { Markdown } from './Markdown';
 import { CopyButton } from './common';
 import { DispatchBox } from './DispatchBox';
 import { DecisionCard } from './DecisionCard';
+import { harnessLabel } from '../../lib/library';
 
 function toTurn(raw: unknown): Turn | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -70,6 +71,7 @@ async function searchHistory(stationId: string, q: string): Promise<Hit[]> {
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export function Conversation({ station }: { station: Station }) {
+  const agent = station.harness === 'codex' ? harnessLabel(station.harness) : 'Claude';
   const [turns, setTurns] = useState<Turn[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -242,7 +244,7 @@ export function Conversation({ station }: { station: Station }) {
           {hits.slice(0, 50).map((h, i) => (
             <button key={i} className="hit" onClick={() => jumpTo(h.ts)}>
               <span className="hit-meta">
-                {h.role === 'user' ? 'You' : 'Claude'} · {new Date(h.ts * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {h.role === 'user' ? 'You' : agent} · {new Date(h.ts * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </span>
               <span className="hit-snip">{h.snippet}</span>
             </button>
@@ -271,7 +273,7 @@ export function Conversation({ station }: { station: Station }) {
         {turns.map((t, i) => (
           <div key={`${t.ts}-${i}`} data-ts={t.ts} className={`turn turn-${t.role}${flash === t.ts ? ' flash' : ''}`}>
             <div className="turn-meta">
-              <span>{t.role === 'user' ? 'You' : 'Claude'}</span>
+              <span>{t.role === 'user' ? 'You' : agent}</span>
               <span>{clock(t.ts)}</span>
               {t.role === 'assistant' && t.text && <CopyButton text={t.text} />}
             </div>

@@ -1,0 +1,9 @@
+{
+  "session": {"timestamp": "2025-05-02T10:00:00.000Z", "id": "eeee5555-0000-0000-0000-000000000000", "instructions": "PRIVATE"},
+  "items": [
+    {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "List the gadget models."}]},
+    {"type": "function_call", "name": "shell", "arguments": "{\"command\":[\"ls\",\"models\"]}", "call_id": "call_l1"},
+    {"type": "function_call_output", "call_id": "call_l1", "output": "{\"output\":\"a.py b.py\"}"},
+    {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "There are two models."}]}
+  ]
+}

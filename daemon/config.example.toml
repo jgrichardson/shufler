@@ -24,7 +24,7 @@ command_titles = []
 # Utility rows (tools, not work): no row in the world, still reachable from the terminal drawer.
 utility = []
 # utility = ["SHARED"]
-# Read running `claude` processes every 10 s (ps + lsof) to tell open sessions from closed ones.
+# Read running agent processes (`claude`, `codex`) every 10 s (ps + lsof) to tell open sessions from closed ones.
 processes = true
 
 [cmux]
@@ -47,9 +47,21 @@ rows = "pane"
 # socket_name = "work"            # tmux -L work
 # socket_path = "/tmp/tmux.sock"  # tmux -S /tmp/tmux.sock
 
-# ---------------------------------------------------------------- coding agent
+# ---------------------------------------------------------------- coding agents
+# Which agent harnesses run in your rows: "auto" (Claude Code always, plus Codex when it is installed) or a list.
+# Claude Code and Codex rows mix freely. docs/AGENTS.md explains each harness.
+[agents]
+enabled = "auto"
+# enabled = ["claude", "codex"]
+
+# Codex CLI: rollouts under <home>/sessions. Defaults: $CODEX_HOME, else ~/.codex.
+[codex]
+# home = "~/.codex"
+# bin = "codex"
+
+# Claude Code.
 [agent]
-adapter = "claude-code"                             # only claude-code exists today
+adapter = "claude-code"                             # the Claude Code adapter (Codex is configured above)
 
 # One entry per Claude Code config directory you run sessions from.
 [[agent.accounts]]

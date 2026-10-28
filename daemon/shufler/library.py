@@ -338,7 +338,14 @@ def snapshot_field(lib: "Library", snap: dict) -> dict:
 
 # ---------------------------------------------------------------- message composition (pure, one adapter per harness)
 
+HARNESS_FORMATS = {"claude": "claude-code", "codex": "codex"}  # station.harness → message format below
+
+
 def harness_for(station: dict) -> str:
+    """The message format for a station: its running harness, else a title naming Codex, else the configured agent."""
+    fmt = HARNESS_FORMATS.get(station.get("harness") or "")
+    if fmt:
+        return fmt
     title = (station.get("title") or "").lower()
     if "codex" in title:
         return "codex"
@@ -377,14 +384,24 @@ def compose_claude_code(items: list[dict], cwd: str | None, note: str | None = N
 
 
 def compose_plain(items: list[dict], cwd: str | None, note: str | None = None, kinds: dict[str, str] | None = None) -> list[str]:
-    """Codex and other harnesses: plain absolute paths in one prompt."""
+    """Other harnesses: plain absolute paths in one prompt."""
     parts = [f"{it.get('name')}: {' '.join(it.get('paths') or [])}" for it in items]
+    return [_prompt(parts, note)]
+
+
+def compose_codex(items: list[dict], cwd: str | None, note: str | None = None, kinds: dict[str, str] | None = None) -> list[str]:
+    """Codex: one prompt with absolute paths. Codex has no `/add-dir` (extra writable roots are a launch flag) and
+    its sandbox reads anywhere, so a folder outside the cwd needs nothing first. No `@`: typed into the TUI it opens
+    the file-search popup, which would take the Return. A path with spaces is double-quoted."""
+    def path(p: str) -> str:
+        return f'"{p}"' if any(c.isspace() for c in p) else p
+    parts = [f"{it.get('name')}: {' '.join(path(p) for p in it.get('paths') or [])}" for it in items]
     return [_prompt(parts, note)]
 
 
 HARNESSES: dict[str, Callable[..., list[str]]] = {
     "claude-code": compose_claude_code,
-    "codex": compose_plain,
+    "codex": compose_codex,
     "generic": compose_plain,
 }
 
