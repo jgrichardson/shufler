@@ -5,12 +5,14 @@ import { stationContext } from '../../lib/library';
 import { ago } from '../../lib/format';
 import { Section } from '../panel/common';
 import { ensureLibrary, openSend, useLibrary } from './store';
+import { useLeverOff } from '../../lib/terminalCaps';
 
 /** The session panel's Context section: what the library gave this session (pinned, sent, owed) and Send. */
 export function ContextSection({ s }: { s: Station }) {
   const data = useLibrary((x) => x.data);
   const owed = useWorld((x) => x.snapshot?.library?.owed[s.id]) ?? [];
   const [pick, setPick] = useState('');
+  const off = useLeverOff('library_send');
   useEffect(ensureLibrary, []);
   const rows = data ? stationContext(s, data, owed) : [];
   const others = (data?.items ?? []).filter((i) => !rows.some((r) => r.item.id === i.id));
@@ -20,7 +22,7 @@ export function ContextSection({ s }: { s: Station }) {
       className={owed.length ? 'ctx-owed' : ''}
       right={
         owed.length > 0 ? (
-          <button className="btn primary xs" onClick={() => openSend(s.id, owed)}>
+          <button className="btn primary xs" disabled={!!off} title={off ?? undefined} onClick={() => openSend(s.id, owed)}>
             Send owed · {owed.length}
           </button>
         ) : undefined
@@ -39,7 +41,7 @@ export function ContextSection({ s }: { s: Station }) {
             {!r.pinned && r.grants.length > 0 && <span className="lib-tag">once</span>}
             {r.sentAt && <span className="muted small">sent {ago(r.sentAt)} ago</span>}
           </span>
-          <button className="btn xs" onClick={() => openSend(s.id, [r.item.id])}>
+          <button className="btn xs" disabled={!!off} title={off ?? undefined} onClick={() => openSend(s.id, [r.item.id])}>
             Send
           </button>
         </div>
@@ -54,7 +56,7 @@ export function ContextSection({ s }: { s: Station }) {
               </option>
             ))}
           </select>
-          <button className="btn xs" disabled={!pick} onClick={() => (openSend(s.id, [pick]), setPick(''))}>
+          <button className="btn xs" disabled={!pick || !!off} title={off ?? undefined} onClick={() => (openSend(s.id, [pick]), setPick(''))}>
             Send
           </button>
         </div>

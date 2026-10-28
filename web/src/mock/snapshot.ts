@@ -214,7 +214,20 @@ function mockTelemetry(i: number, tokens: number, status: string, now: number, h
 
 const GROUP_COLORS = { IN_PROGRESS: '#5fa8d3', ON_HOLD: '#9a8fa6', GENERAL: '#c7b28a' };
 
-export function makeMockSnapshot(nowMs = Date.now()): Raw {
+const TERMINAL_FLAGS = ['can_send', 'can_focus', 'can_read_screen', 'can_open', 'has_groups', 'can_follow'] as const;
+
+/**
+ * The mock terminal, from the page URL: `?terminal=none` is the no-terminal mode (every terminal lever off),
+ * `?caps_off=can_send,can_focus` turns single flags off on cmux. For checking greyed-out levers without a daemon.
+ */
+export function mockTerminal(search = typeof window !== 'undefined' ? window.location.search : ''): { kind: string; caps: Record<string, boolean> } {
+  const q = new URLSearchParams(search);
+  const kind = q.get('terminal') === 'none' ? 'none' : 'cmux';
+  const off = new Set((q.get('caps_off') ?? '').split(',').map((x) => x.trim()));
+  return { kind, caps: Object.fromEntries(TERMINAL_FLAGS.map((f) => [f, kind !== 'none' && !off.has(f)])) };
+}
+
+export function makeMockSnapshot(nowMs = Date.now(), terminal = mockTerminal()): Raw {
   // mock mode never reads /api/config, so the demo team's areas stand in for the configured domains
   setDomainDefs(MOCK_DOMAINS);
   const now = nowMs / 1000;
@@ -290,7 +303,8 @@ export function makeMockSnapshot(nowMs = Date.now()): Raw {
     your_move: [],
     capabilities: {
       product: 'Shufler',
-      terminal: 'cmux',
+      terminal: terminal.kind,
+      terminal_caps: terminal.caps,
       agent: 'claude-code',
       agents: ['claude', 'codex'],
       scm: 'github',
@@ -314,7 +328,7 @@ export function makeMockSnapshot(nowMs = Date.now()): Raw {
     skills: MOCK_SKILLS,
     focused_station_id: null,
     sources: {
-      cmux: { ok: true, age: 1.2 },
+      [terminal.kind]: { ok: true, age: 1.2 },
       groups: { ok: true, age: 8 },
       notes: { ok: true, age: 1.9 },
       transcripts: { ok: true, age: 0.4 },

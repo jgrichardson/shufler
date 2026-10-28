@@ -104,7 +104,7 @@ def agent_lines(cfg: dict, out=print) -> list[str]:
 
 def setup(argv: list[str], inp=input, out=print) -> int:
     ap = argparse.ArgumentParser(prog="shufler setup")
-    ap.add_argument("--terminal", help="cmux, iterm2, tmux, ... (non-interactive)")
+    ap.add_argument("--terminal", help="cmux, iterm2, tmux, none, ... (non-interactive)")
     ap.add_argument("--yes", action="store_true", help="accept the current or detected terminal and its options")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="an option for that terminal")
     ap.add_argument("--agents", help="agent harnesses: auto, or a comma list such as claude,codex")
@@ -194,6 +194,9 @@ def setup(argv: list[str], inp=input, out=print) -> int:
     out(f"terminal = {kind}{' (' + shown + ')' if shown else ''} written to {path}")
     if chosen is not None:
         out(f"agents = {chosen if chosen == 'auto' else ', '.join(chosen)} written to {path}")
+    if kind == "none":
+        out("no terminal: one row per running claude or codex session, with state, model, tokens and PRs. Sending "
+            "prompts, answering questions, running skills, Focus and new tabs are off (greyed out in the web app).")
     if kind == "iterm2":
         out("macOS asks once to let the app running Shufler control iTerm2; allow it (System Settings > "
             "Privacy & Security > Automation). `shufler status` checks it.")

@@ -417,7 +417,10 @@ class Collectors:
             add("intake", 10, a.trackers["intake"].collect)
         if "ledgers" in a.trackers:
             add("ledgers", 30, a.trackers["ledgers"].collect)
-        if config.PROCESSES_ENABLED:
+        shared = getattr(a.terminal, "agent_processes", None)
+        if shared:  # the terminal's rows are the processes ([terminal] kind = "none"): one scan serves both
+            add("processes", getattr(a.terminal, "poll_interval", 3), shared)
+        elif config.PROCESSES_ENABLED:
             from .processes import ProcessScanner
             add("processes", 10, ProcessScanner({h: ag.match_process for h, ag in a.all_agents().items()}))
         add("transcripts", 3, self._scan_transcripts)

@@ -300,6 +300,18 @@ def terminal_kind() -> str:
     return resolve_kind(TERMINAL_KIND, CFG)
 
 
+_TERMINAL_CAPS: dict[str, dict[str, bool]] = {}
+
+
+def terminal_caps() -> dict[str, bool]:
+    """The active terminal's capability flags (adapters/terminal CAPABILITY_FLAGS); the web greys out levers that are off."""
+    from .adapters.terminal import caps_of, registered
+    kind = terminal_kind()
+    if kind not in _TERMINAL_CAPS:  # once per kind: registered() reads the entry points
+        _TERMINAL_CAPS[kind] = caps_of(registered().get(kind))
+    return dict(_TERMINAL_CAPS[kind])
+
+
 def enabled_agents() -> list[str]:
     """The agent harnesses that run ([agents] enabled, "auto" resolved by the adapters/agent registry)."""
     from .adapters.agent import enabled
@@ -320,6 +332,7 @@ def capabilities() -> dict:
     return {
         "product": PRODUCT_NAME,
         "terminal": terminal_kind(),
+        "terminal_caps": terminal_caps(),
         "agent": AGENT_ADAPTER,
         "agents": enabled_agents(),
         "scm": SCM_ADAPTER if REPO else None,
