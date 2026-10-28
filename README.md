@@ -1,17 +1,33 @@
 # Shufler
 
+[![CI](https://github.com/jgrichardson/shufler/actions/workflows/ci.yml/badge.svg)](https://github.com/jgrichardson/shufler/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/jgrichardson/shufler)](https://github.com/jgrichardson/shufler/releases)
+
 *You used to write code. Now you shuffle prompts between people and robots. Might as well enjoy it.*
 
-A 3D control room for developers who run many AI coding agent sessions at once.
+A 3D control room for developers who run many AI coding agent sessions at once, in Claude Code, the OpenAI Codex CLI or both.
 
-Shufler reads your terminal sessions, your agent transcripts and your GitHub pull requests, and turns them into an interactive 3D world. Each terminal session is a row. Its PRs and issues move left to right through phase columns, from Brainstorm to Deploy. Anything that needs you lights up red. You can answer a question, dispatch a prompt, re-run CI or merge from the scene, or just carry on in your terminal.
-
-**Shufler does not replace Claude Code, Codex or your terminal.** You keep working exactly as you do today: your agents run in your terminal tabs and you type to them there. Shufler sits beside them, reads what they are doing and shows it all as one world. Each row is one of your terminal tabs. Click a row and your terminal switches to that tab.
+**[Try the live demo](https://jgrichardson.github.io/shufler/)** (sample data in your browser, nothing to install) · [Quickstart](#quickstart) · [Install](#install)
 
 <picture>
   <source media="(prefers-reduced-motion: reduce)" srcset="docs/images/hero.png">
   <img src="docs/images/hero.gif" width="100%" alt="Shufler beside a terminal whose tabs match its rows: clicking AUTH, then the BILLING question, then INFRA switches the terminal to that tab each time">
 </picture>
+
+Shufler reads your terminal sessions, your agent transcripts and your GitHub pull requests, and turns them into an interactive 3D world. Each terminal session is a row. Its PRs and issues move left to right through phase columns, from Brainstorm to Deploy. Anything that needs you lights up red. You can answer a question, dispatch a prompt, re-run CI or merge from the scene, or just carry on in your terminal.
+
+**Shufler does not replace Claude Code, Codex or your terminal.** You keep working exactly as you do today: your agents run in your terminal tabs and you type to them there. Shufler sits beside them, reads what they are doing and shows it all as one world. Each row is one of your terminal tabs. Click a row and your terminal switches to that tab.
+
+## Quickstart
+
+Beta (v0.2.0, pre-1.0), macOS, with cmux, iTerm2 or tmux. You need [uv](https://docs.astral.sh/uv/), [Bun](https://bun.sh), the [GitHub CLI](https://cli.github.com) and Claude Code or the Codex CLI. Full steps are in [Install](#install).
+
+```bash
+git clone https://github.com/jgrichardson/shufler.git && cd shufler
+bin/shufler setup        # writes ~/.config/shufler/config.toml; then set scm.repo in it
+(cd web && bun install && bun run build) && bin/shufler start   # open http://127.0.0.1:4700
+```
 
 ## Why this exists
 
@@ -202,7 +218,7 @@ A drawer of local shells, for a console you want next to the scene. At most six,
 
 ## Status
 
-Shufler is early software, version 0.2.0. It was built for one developer's setup and is being opened up.
+Shufler is early beta software, version 0.2.0 (pre-1.0). It was built for one developer's setup and is being opened up.
 
 - It is macOS first. Terminals: cmux, iTerm2 and tmux (see [`docs/TERMINALS.md`](docs/TERMINALS.md)). Autostart uses launchd. Linux is planned.
 - Agent harnesses: Claude Code and the OpenAI Codex CLI, mixed freely (see [`docs/AGENTS.md`](docs/AGENTS.md)).
@@ -256,6 +272,8 @@ bin/shufler uninstall    # remove it
 ### Try it without any setup
 
 Mock mode runs the web app on built-in sample data. No daemon, terminal or GitHub access is needed. Every lever is simulated.
+
+The quickest way is the [hosted demo](https://jgrichardson.github.io/shufler/), the same mock mode built as a static site. To run it locally:
 
 ```bash
 cd web && bun install && bun run dev
@@ -608,7 +626,7 @@ Ideas that are not built yet. Some are close, some are a wish list. If one matte
 
 ## Contributing
 
-Issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first. In short: the daemon binds to loopback only, no action may be destructive, and `CONTRACT.md` changes first when a field changes. Security reports go through [`SECURITY.md`](SECURITY.md).
+Issues and pull requests are welcome; questions and ideas can go to [Discussions](https://github.com/jgrichardson/shufler/discussions). Issues labelled [`good first issue`](https://github.com/jgrichardson/shufler/labels/good%20first%20issue) are small and self-contained. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first. In short: the daemon binds to loopback only, no action may be destructive, and `CONTRACT.md` changes first when a field changes. Security reports go through [`SECURITY.md`](SECURITY.md).
 
 ## License
 
