@@ -31,17 +31,19 @@ bin/shufler setup        # writes ~/.config/shufler/config.toml; then set scm.re
 
 ## Why this exists
 
-For twenty years a developer's day ran across three windows: a terminal, a code editor and a browser. The editor was the centre. You read code, you wrote code, and the other two windows supported that.
+I've been a full-stack engineer for about twenty years, and I liked the work. The day ran across three windows: a terminal, a code editor and the app I was building. The editor was the centre. You read code, you wrote code, and the other two windows supported that.
 
-AI changed the shape of that day. I barely open an editor now. The terminal is my main interface, and inside it I run five, eight, sometimes a dozen agent sessions at once. One is building a feature, one is fixing review comments, one is waiting for CI, one has stopped to ask me a question twenty minutes ago and I haven't noticed.
+AI changed the shape of that day. I barely open an editor now, I miss it, and I don't think it's coming back. The terminal is my main interface, and inside it I run five, eight, sometimes a dozen agent sessions at once. One is building a feature, one is fixing review comments, one is waiting for CI, one has stopped to ask me a question.
 
 One day I looked at what I'd actually done and it was mostly this: copy a request out of Slack, paste it into an agent. Copy the agent's question back to the person who asked. Paste their answer into the agent. Check GitHub, nudge CI, paste the error into another agent, carry the result back to the ticket. Request in, request out, all day. I wasn't reasoning much. I was shuffling.
 
-That's the job now for a lot of us. Not writing code, but shuffling requests between the people who want things and the models that build them, and holding the state of every thread in your head. Which session is blocked on me? Which PR passed review? Which one is still on an old commit? None of my tools was built to answer that, because none of them was built for this way of working.
+That's the job now for a lot of us. Not writing code, but shuffling requests between the people who want things and the models that build them, and holding the state of every thread in your head. Which session is blocked on me? Which PR passed review? Which one is still on an old commit? None of my tools was built to answer that, because none of them was built for this way of working. And it's the same kanban every org already runs for designs, tickets and pull requests.
 
 So I stopped pretending the day still looks like an editor, and built a tool for the job I actually have. If the work is shuffling a fleet of agents across a pipeline, it should look like what it is: a live world where every session is a row, every pull request is a car riding from idea to production, and anything waiting on you lights up. Shuffling is less soul-crushing when you can see the whole floor, and it can even feel a little like a game, one where the score is shipped work.
 
 That's Shufler. It doesn't pretend you're still hand-writing every line. It owns the shuffle, and makes you very good at it.
+
+It started as a weekend project and it's rough in places. Claude Code wrote most of the code; I designed it and reviewed what shipped. I've used it at work every day since, and I enjoy it, which is why it's here.
 
 Shufler runs on your machine only. It wraps your existing tools (a terminal multiplexer, an agent harness, the `gh` CLI) and does not replace any of them.
 
