@@ -40,7 +40,7 @@ export const COMMAND = {
   /** Dark surround for every status, ball and review lamp. */
   bezel: '#1d2016',
   /** The dark painted strips the phase accents sit on. */
-  opsBoard: '#2c3122',
+  opsBoard: '#181b12',
   concrete: '#7a776a',
   // lights
   floodLamp: '#ffcf8a',
