@@ -319,6 +319,14 @@ hide = []
 # placement = "pr"
 # pin = true
 
+# ---------------------------------------------------------------- MCP server
+# `shufler mcp` lets your agents ask Shufler what is running (read-only tools, always on). With
+# allow_dispatch = true it also offers send_prompt and answer_question, which preview a prompt to another session
+# and send it only through a second confirm_dispatch call. One agent can then steer another, so read the threat
+# model in docs/MCP.md before turning it on.
+[mcp]
+allow_dispatch = false
+
 # ---------------------------------------------------------------- world layout domains
 # One lane per domain, in this order. Aliases match lower-case tokens of workspace titles, PR title scopes
 # (`feat(billing): ...`), branches and ledger areas. The palette below is a sample; replace it with your own

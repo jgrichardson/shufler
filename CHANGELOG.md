@@ -4,6 +4,21 @@ All notable changes to Shufler are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- An MCP server, `shufler mcp`, so agents in Claude Code or Codex can ask
+  Shufler what is running. Read-only tools: `status`, `needs_you`, `get_pr`,
+  `read_session` and `list_work_items`. It is a client of the daemon's
+  existing HTTP API; the contract is unchanged.
+- Opt-in dispatch tools for the MCP server (`[mcp] allow_dispatch = true`):
+  `send_prompt` and `answer_question` return the daemon's preview and a
+  one-time `confirm_id`, and only `confirm_dispatch` sends. The never-do
+  guard, a control-character check, a no-self-target rule and a rate limit
+  apply. `docs/MCP.md` has the threat model.
+- `shufler mcp --print-config` prints setup lines for Claude Code and Codex.
+
 ## [0.2.0] - 2026-10-28
 
 ### Added
