@@ -708,6 +708,12 @@ Ideas that are not built yet. Some are close, some are a wish list. If one matte
 
 Issues and pull requests are welcome; questions and ideas can go to [Discussions](https://github.com/jgrichardson/shufler/discussions). Issues labelled [`good first issue`](https://github.com/jgrichardson/shufler/labels/good%20first%20issue) are small and self-contained. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first. In short: the daemon binds to loopback only, no action may be destructive, and `CONTRACT.md` changes first when a field changes. Security reports go through [`SECURITY.md`](SECURITY.md).
 
+## Support Shufler
+
+Shufler is free and MIT-licensed, and it stays that way for one person on their own machine. If it saves you
+time, you can [sponsor it on GitHub](https://github.com/sponsors/jgrichardson) or become a supporter through
+[Polar](https://polar.sh/shufler). Supporters get the supporter skins as they come out.
+
 ## License
 
 [MIT](LICENSE)
