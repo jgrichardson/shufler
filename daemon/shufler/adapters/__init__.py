@@ -19,7 +19,7 @@ from .review import ExternalReviewer, ReviewerAdapter
 from .scm import GitHubAdapter, ScmAdapter
 from .terminal import TerminalAdapter
 from .terminal import build as build_terminal
-from .tracker import BoardAdapter, IntakeAdapter, LedgerAdapter, WorkItemSource
+from .tracker import BoardAdapter, IntakeAdapter, LedgerAdapter, SourceEntry, WorkItemSource, load_sources
 
 
 @dataclass
@@ -30,6 +30,7 @@ class Adapters:
     reviewer: ExternalReviewer | None
     trackers: dict[str, WorkItemSource] = field(default_factory=dict)
     agents: dict[str, AgentAdapter] = field(default_factory=dict)  # every enabled harness by id ("claude", "codex")
+    issues: list[SourceEntry] = field(default_factory=list)  # [[issues.sources]], built or with their config error
 
     def all_agents(self) -> dict[str, AgentAdapter]:
         return self.agents or {getattr(self.agent, "harness", "claude"): self.agent}
@@ -76,6 +77,7 @@ def from_config() -> Adapters:
         reviewer=reviewer,
         trackers=trackers,
         agents=agents,
+        issues=load_sources(config.CFG),
     )
 
 

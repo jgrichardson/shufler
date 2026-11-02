@@ -17,6 +17,7 @@ from . import config, runner
 from .adapters.agent.claude_code import ClaudeCodeAdapter, mask_email  # noqa: F401 - re-exported
 from .adapters.terminal.cmux import CMUX_KEEP  # noqa: F401 - re-exported
 from .adapters.tracker.intake import IntakeAdapter
+from .adapters.tracker.issue_sources import collector as issue_collector
 from .adapters.tracker.ledgers import LedgerAdapter, ledger_branch, parse_ledger  # noqa: F401
 from .transcripts import parse_ts
 
@@ -446,6 +447,8 @@ class Collectors:
         if "board" in a.trackers and "intake" in self.sources:
             intake = self.sources["intake"]
             add("board", 300, lambda: a.trackers["board"].collect(intake.data))
+        for entry in a.issues:  # one source per [[issues.sources]] entry; a config error shows as its health
+            add(f"issues.{entry.name}", entry.interval, issue_collector(entry))
         # Last known code-host state from disk so the floor is populated before the first call returns.
         for name, cache in (("gh", "gh_open"), ("gh_merged", "gh_merged"), ("gh_detail", "gh_detail")):
             cached = cache_read(cache) if name in self.sources else None
