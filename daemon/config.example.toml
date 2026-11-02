@@ -140,6 +140,18 @@ note_args = ["note", "{id}", "{text}"]
 stage_pattern = 'stage=(\S+)'
 record_key = "card"
 
+# ---------------------------------------------------------------- issue sources (optional)
+# Issue trackers whose issues come onto the board, one [[issues.sources]] per tracker. `kind` is a built-in
+# ("github") or one a plugin package adds (docs/EXTENDING.md). Each shows in source health as issues.<name>.
+# [issues]
+# interval = 60                                     # seconds between reads of each source (at least 30)
+#
+# [[issues.sources]]
+# kind = "github"                                   # your gh login; no token
+# name = "gh"                                       # default: gh
+# repo = "acme/widgets"                             # default: [scm] repo
+# filter = "assignee:@me"                           # GitHub search syntax
+
 # ---------------------------------------------------------------- work phases (districts, left to right)
 [pipeline]
 stages = [

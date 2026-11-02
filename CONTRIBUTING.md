@@ -30,7 +30,7 @@ packaging/smoke-test.sh dist/shufler-*.whl 4781   # install a wheel in a clean v
 
 ## Add an adapter
 
-Adapters live in `daemon/shufler/adapters/<kind>/`. Each kind has a Protocol in its `__init__.py`: terminal, agent, scm, review or tracker. Terminals have a guide in [`docs/TERMINALS.md`](docs/TERMINALS.md) and agent harnesses (Claude Code and Codex today) in [`docs/AGENTS.md`](docs/AGENTS.md); both can also ship as a separate package through an entry point (`shufler.terminals`, `shufler.agents`).
+Adapters live in `daemon/shufler/adapters/<kind>/`. Each kind has a Protocol in its `__init__.py`: terminal, agent, scm, review or tracker. Terminals have a guide in [`docs/TERMINALS.md`](docs/TERMINALS.md) and agent harnesses (Claude Code and Codex today) in [`docs/AGENTS.md`](docs/AGENTS.md); both can also ship as a separate package through an entry point (`shufler.terminals`, `shufler.agents`), and so can issue trackers (`shufler.issue_sources`). [`docs/EXTENDING.md`](docs/EXTENDING.md) covers every plugin point.
 
 1. Add a module next to the existing implementation, for example `terminal/tmux.py` with a `TmuxAdapter`, and implement every Protocol method. Command builders return argv lists and never run a shell.
 2. Register it in `adapters.from_config()` (terminals: the registry in `adapters/terminal/__init__.py`, chosen by `[terminal] kind`; agent harnesses: the registry in `adapters/agent/__init__.py`, chosen by `[agents] enabled`), and add the keys it needs to `daemon/config.example.toml` with commented examples.

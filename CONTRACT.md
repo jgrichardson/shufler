@@ -107,7 +107,8 @@ named `*_at` that come from GitHub or records are ISO 8601 strings. Absent data 
 read; `error` is at most 300 characters). A failing source never stops the others and keeps its last good
 data. Keys: the terminal adapter's name (`cmux`, `iterm2`, `tmux` or `none`), `groups`, `notes`, `intake`, `ledgers`,
 `processes`, `transcripts`, `screens`, `skills`, `accounts`, `gh`, `gh_merged`, `gh_detail`, `ledger_branches`,
-`deploys`, `reviewer_watch`, `board`. A source that is off in the config is absent.
+`deploys`, `reviewer_watch`, `board`, and `issues.<name>` per issue source. A source that is off in the config is
+absent.
 
 | Source | Reads | Refresh |
 |---|---|---|
@@ -126,6 +127,7 @@ data. Keys: the terminal adapter's name (`cmux`, `iterm2`, `tmux` or `none`), `g
 | `deploys` | deploy workflow runs (`[scm] deploy_workflow`) | 120 s |
 | `reviewer_watch` | reviewer status command (`[reviewer] status_command`) | 30 s |
 | `board` | board card stages | 300 s |
+| `issues.<name>` | one `[[issues.sources]]` entry (section 5, "Issue sources"); an entry that cannot be built reports why here, with `ok: false` | 60 s (`interval`, at least 30 s) |
 
 The last open and merged PR answers are cached under the cache directory, so a restart shows data at once.
 
@@ -553,6 +555,7 @@ every key. Sections:
 | `[intake]` | `enabled`, `dir`, `set_command`, `workspace`, `prompt`, `reply_events` |
 | `[ledgers]` | `enabled`, `dir`, `area_env`, `session_marker` |
 | `[board]` | `enabled`, `command`, `stages`, `get_args`, `stage_args`, `note_args`, `stage_pattern`, `record_key` |
+| `[issues]`, `[[issues.sources]]` | `interval` (seconds between reads of each source; default 60, at least 30); per source `kind`, `name`, `interval` and the kind's own keys (below) |
 | `[pipeline]` | `stages`: the work phases (`id`, `label`, `color`, `description`) |
 | `[notes]` | `enabled`, `dir` |
 | `[[commands]]` | custom commands (below) |
@@ -629,6 +632,23 @@ With `[board]` on, each non-finished intake record's card id is looked up by run
 (`{id}` filled); the card's stage is the first match of `stage_pattern` in its output (lower-cased, spaces to
 underscores). `stage_args` (`{id}`, `{stage}`) and `note_args` (`{id}`, `{text}`) back the `board_stage` and
 `board_note` actions.
+
+### Issue sources
+
+Each `[[issues.sources]]` entry is one issue tracker. `kind` picks the implementation: a built-in kind (`github`)
+or one a plugin package registers through the `shufler.issue_sources` entry point (`docs/EXTENDING.md`). When two
+register the same kind, the built-in or first-loaded one wins and the daemon logs a warning. `name` (default: the
+kind's own default, `gh` for `github`; `[a-z0-9][a-z0-9_-]{0,30}`, unique) is the source's health key
+`issues.<name>` and the `source` of its issues. An entry with an unknown or missing `kind`, a plugin that fails to
+load, a duplicate name or a bad key never stops the daemon: its source reports the reason in source health.
+
+`github` keys: `repo` (`owner/name`; default `[scm] repo`), `filter` (GitHub search syntax; default
+`assignee:@me`), `limit` (default 100, at most 500). It runs `gh issue list` with your gh login and needs no
+token.
+
+Each issue is `{source, key, title, url, state, assignee, priority, labels, updated_at}` (`state` lower-case,
+`assignee` and `priority` may be null). Issues are read and their health reported; the snapshot does not carry
+them yet.
 
 ### Skills
 
